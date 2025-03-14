@@ -1,21 +1,45 @@
 {
   "expo": {
-    "name": "WenHua",
-    "slug": "WenHua",
+    "name": "文脉",
+    "slug": "wenhua",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "myapp",
+    "scheme": "wenhua",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/images/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#F5EFE0"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.wenhua.app",
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "我们需要获取您的位置以便在地图上显示您当前的位置",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "我们需要获取您的位置以便在地图上显示您当前的位置",
+        "NSCameraUsageDescription": "我们需要使用您的相机以便识别文物",
+        "NSPhotoLibraryUsageDescription": "我们需要访问您的相册以保存识别的文物照片",
+        "NSPhotoLibraryAddUsageDescription": "我们需要访问您的相册以保存识别的文物照片"
+      }
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
-      }
+        "backgroundColor": "#F5EFE0"
+      },
+      "package": "com.wenhua.app",
+      "permissions": [
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION",
+        "CAMERA",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE",
+        "MEDIA_LIBRARY"
+      ]
     },
     "web": {
       "bundler": "metro",
@@ -24,18 +48,29 @@
     },
     "plugins": [
       "expo-router",
+      "expo-location",
       [
-        "expo-splash-screen",
+        "expo-camera",
         {
-          "image": "./assets/images/splash-icon.png",
-          "imageWidth": 200,
-          "resizeMode": "contain",
-          "backgroundColor": "#ffffff"
+          "cameraPermission": "允许\"文脉\"使用您的相机以识别文物。"
+        }
+      ],
+      [
+        "expo-media-library",
+        {
+          "photosPermission": "允许\"文脉\"访问您的相册以保存识别的文物照片。",
+          "savePhotosPermission": "允许\"文脉\"保存照片到您的相册。",
+          "isAccessMediaLocationEnabled": true
         }
       ]
     ],
     "experiments": {
-      "typedRoutes": true
-    }
+      "typedRoutes": true,
+      "newArchEnabled": true
+    },
+    "extra": {
+      "baiduMapAK": "您的百度地图API密钥"
+    },
+    "description": "一款融合地域、人物和历史事件的文物类移动应用，通过交互式游戏体验让用户了解文物背后的历史故事。"
   }
 }
