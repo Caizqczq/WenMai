@@ -8,7 +8,7 @@
     "scheme": "wenhua",
     "userInterfaceStyle": "automatic",
     "splash": {
-      "image": "./assets/images/splash.png",
+      "image": "./assets/images/splash-icon.png",
       "resizeMode": "contain",
       "backgroundColor": "#F5EFE0"
     },
@@ -65,11 +65,11 @@
       ]
     ],
     "experiments": {
-      "typedRoutes": true,
-      "newArchEnabled": true
+      "typedRoutes": true
     },
+    "newArchEnabled": true,
     "extra": {
-      "baiduMapAK": "您的百度地图API密钥"
+      "baiduMapAK": "Q8PGQJZ0llabSmb3OMnsx5HRobi4HdtZ"
     },
     "description": "一款融合地域、人物和历史事件的文物类移动应用，通过交互式游戏体验让用户了解文物背后的历史故事。"
   }

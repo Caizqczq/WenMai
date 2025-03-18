@@ -161,6 +161,92 @@ const relicsDatabase = [
       "造型多样，包括人物、动物、日用器皿等",
       "受到波斯和中亚艺术的影响"
     ]
+  },
+  { 
+    id: '106', 
+    name: '陕西历史博物馆文物', 
+    dynasty: '多朝代',
+    era: '公元前11世纪-公元20世纪',
+    location: '陕西历史博物馆',
+    description: '陕西历史博物馆位于西安市，是中国第一座大型现代化国家级博物馆，馆藏文物丰富，包括商周青铜器、秦始皇兵马俑、唐代金银器和壁画等珍贵文物，展现了陕西地区灿烂的历史文化。',
+    longDescription: `陕西历史博物馆位于西安市小寨东路，建成于1991年，是中国第一座大型现代化国家级历史博物馆，被誉为"古都明珠，华夏宝库"。
+
+博物馆建筑风格独特，采用唐代建筑的特点，既庄重大气，又典雅精致。馆内收藏了陕西地区从远古时期到1840年前的各类文物，反映了中国历史上最辉煌的几个朝代——周、秦、汉、唐的灿烂文明。
+
+馆藏文物中最具代表性的有：商周时期的青铜器，展现了早期中国的铸造工艺；秦朝的兵马俑，体现了秦代的军事力量；汉代的陶俑和壁画，反映了汉代社会生活；唐代的金银器和唐三彩，代表了盛唐时期的辉煌文化；宋元明清时期的瓷器、玉器和书画，显示了中国传统艺术的发展脉络。
+
+其中最著名的藏品包括"鎏金铜蚕"、"四羊方尊"、"懿德太子墓壁画"和"唐代金银器"等，这些文物都是中华文明的重要见证，具有极高的历史、艺术和科学价值。`,
+    imageUrl: 'https://picsum.photos/id/424/800/600', // 使用随机图片代替
+    images: [
+      'https://picsum.photos/id/424/800/600',
+      'https://picsum.photos/id/265/800/600',
+      'https://picsum.photos/id/399/800/600',
+    ],
+    facts: [
+      "陕西历史博物馆馆藏文物超过37万件",
+      "博物馆建筑面积达6.5万平方米",
+      "每天限量发放4000张免费参观券",
+      "镇馆之宝包括四羊方尊、鎏金铜蚕和唐代金银器",
+      "博物馆参观者中外国游客占比超过30%"
+    ]
+  },
+  { 
+    id: '107', 
+    name: '马王堆汉墓文物', 
+    dynasty: '西汉',
+    era: '公元前206年-公元8年',
+    location: '湖南省博物馆',
+    description: '马王堆汉墓是1972年至1974年在长沙马王堆出土的三座西汉早期墓葬，出土了大量保存完好的丝织品、漆木器、帛书、药物和辛追夫人遗体，是研究汉代社会生活和文化的珍贵资料。',
+    longDescription: `马王堆汉墓是20世纪中国考古学上的重大发现之一，位于湖南省长沙市。三座墓葬分别属于长沙国丞相利苍（1号墓）、辛追夫人（2号墓）和他们的儿子（3号墓）。
+
+最为著名的是2号墓中出土的辛追夫人遗体，历经2000多年依然保存完好，皮肤柔软，关节可屈伸，内脏器官清晰可辨，被誉为"世界第九大奇迹"。
+
+出土文物中尤为珍贵的还有T形帛画，描绘了当时人们对宇宙和冥界的理解；素纱单衣，一种极其轻薄的丝绸衣物，被称为"古代织绢技术的巅峰"；以及大量帛书，包含了《老子》《易经》等古代典籍和失传已久的医书《五十二病方》。
+
+马王堆汉墓的发现，为研究中国古代社会生活、丧葬习俗、医学水平、丝织工艺以及思想文化提供了极其珍贵的实物资料。`,
+    imageUrl: 'https://picsum.photos/id/607/800/600', // 使用随机图片代替
+    images: [
+      'https://picsum.photos/id/607/800/600',
+      'https://picsum.photos/id/199/800/600',
+      'https://picsum.photos/id/306/800/600',
+    ],
+    facts: [
+      "辛追夫人遗体保存完好，被称为'千年女尸'",
+      "出土的素纱单衣重量仅49克，被称为'丝绸之轻'",
+      "T形帛画高205厘米，是中国现存最古老的帛画之一",
+      "出土了大量医学帛书，记载了52种疾病和283种药物",
+      "三座墓葬出土文物达3000余件"
+    ]
+  },
+  { 
+    id: '108', 
+    name: '甘肃省博物馆文物', 
+    dynasty: '多朝代',
+    era: '公元前5000年-公元20世纪',
+    location: '甘肃省博物馆',
+    description: '甘肃省博物馆是展示甘肃历史文化的重要窗口，馆藏文物丰富，包括马家窑文化彩陶、汉代铜奔马、丝绸之路文物等珍贵文物，见证了甘肃作为中西文化交流枢纽的重要地位。',
+    longDescription: `甘肃省博物馆坐落于兰州市七里河区，建立于1956年，是甘肃省规模最大、收藏最为丰富的综合性博物馆。
+
+博物馆馆藏文物中最为著名的是"铜奔马"（又称"马踏飞燕"），这是东汉时期的青铜器，被誉为"中国旅游标志"和"中华国宝"。这匹铜马姿态矫健，一只前蹄踏在一只飞鸟上，造型生动，工艺精湛，充分展现了汉代艺术家的超凡技艺。
+
+另一件重要藏品是马家窑文化彩陶，距今约5000年，色彩鲜艳，纹饰独特，多为几何纹、旋涡纹和动物图案，是中国史前艺术的杰出代表。
+
+此外，博物馆还珍藏有丝绸之路相关文物，如汉唐时期的丝织品、陶俑、壁画、金银器等，展示了甘肃作为古代丝绸之路重要通道的历史地位和文化交流成果。
+
+博物馆的展览将甘肃悠久的历史文化娓娓道来，从远古时期的彩陶文化，到近现代的革命文物，全面展示了甘肃地区文明发展的历程，是了解中国西北历史文化的重要场所。`,
+    imageUrl: 'https://picsum.photos/id/532/800/600', // 使用随机图片代替
+    images: [
+      'https://picsum.photos/id/532/800/600',
+      'https://picsum.photos/id/653/800/600',
+      'https://picsum.photos/id/486/800/600',
+    ],
+    facts: [
+      "铜奔马（马踏飞燕）是中国旅游标志",
+      "馆藏彩陶距今约5000年，是新石器时代文化的珍贵遗产",
+      "博物馆收藏文物超过35万件",
+      "展览面积超过1万平方米",
+      "设有史前文化、秦汉文明、丝绸之路、民族民俗等多个专题展厅"
+    ]
   }
 ];
 
@@ -350,6 +436,23 @@ export default function RelicDetailScreen() {
           >
             <Ionicons name="bookmark-outline" size={20} color="#FFF" />
             <Text style={styles.collectionButtonText}>收藏文物</Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity 
+            style={styles.storyButton}
+            onPress={() => {
+              // 检查是否有对应的故事
+              const hasStory = ['101', '102', '103', '104', '105', '106', '107', '108'].includes(relic.id);
+              if (hasStory) {
+                // 导航到故事页面
+                router.push(`/story/${relic.id}`);
+              } else {
+                Alert.alert('提示', '该文物暂无相关故事内容');
+              }
+            }}
+          >
+            <Ionicons name="book-outline" size={20} color="#FFF" />
+            <Text style={styles.storyButtonText}>体验文物故事</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -541,6 +644,7 @@ const styles = StyleSheet.create({
   },
   footer: {
     padding: 20,
+    paddingBottom: 40,
     alignItems: 'center',
   },
   collectionButton: {
@@ -554,6 +658,28 @@ const styles = StyleSheet.create({
     width: '80%',
   },
   collectionButtonText: {
+    fontSize: 16,
+    color: '#FFF',
+    fontWeight: 'bold',
+    marginLeft: 8,
+  },
+  storyButton: {
+    flexDirection: 'row',
+    backgroundColor: '#3F51B5',
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: '80%',
+    marginTop: 16,
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.3,
+    shadowRadius: 2,
+  },
+  storyButtonText: {
     fontSize: 16,
     color: '#FFF',
     fontWeight: 'bold',
