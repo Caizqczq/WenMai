@@ -1,36 +1,36 @@
-import React, { useState, useEffect } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import {
   View,
   Text,
   Image,
   StyleSheet,
-  Animated,
-  TouchableOpacity,
   Dimensions,
-  ImageBackground,
-  StatusBar,
+  TouchableOpacity,
   Platform,
-  ScrollView,
-  ViewStyle,
-  TextStyle,
+  StatusBar,
+  FlatList,
+  Animated,
+  ImageBackground,
 } from 'react-native';
+import { BlurView } from 'expo-blur';
 import { Ionicons } from '@expo/vector-icons';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { COLORS, FONTS, SPACING, SHADOWS } from '../constants/Colors';
+import { LinearGradient } from 'expo-linear-gradient';
+import { COLORS, FONTS, SPACING, SHADOWS, RADIUS } from '../constants/Colors';
 
-const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
-const HEADER_HEIGHT = SCREEN_HEIGHT * 0.5;
-const HEADER_MIN_HEIGHT = 100;
-const SCROLL_THRESHOLD = HEADER_HEIGHT / 2;
+const { width, height } = Dimensions.get('window');
+const HEADER_HEIGHT = height * 0.45;
+const DOT_SIZE = 8;
+const DOT_SPACING = 8;
+const DOT_INDICATOR_SIZE = DOT_SIZE + 6;
 
 interface RelicDetailHeaderProps {
   imageUrls: string[];
   title: string;
-  subtitle: string;
-  dynasty: string;
-  era: string;
-  onBack: () => void;
-  onShare: () => void;
+  subtitle?: string;
+  dynasty?: string;
+  era?: string;
+  onBack?: () => void;
+  onShare?: () => void;
 }
 
 const RelicDetailHeader: React.FC<RelicDetailHeaderProps> = ({
@@ -42,300 +42,339 @@ const RelicDetailHeader: React.FC<RelicDetailHeaderProps> = ({
   onBack,
   onShare,
 }) => {
-  const insets = useSafeAreaInsets();
-  const [activeImageIndex, setActiveImageIndex] = useState(0);
-  const [showFixedTitle, setShowFixedTitle] = useState(false);
-  const [scrollY] = useState(new Animated.Value(0));
-
-  // 根据滚动位置计算元素样式
-  const headerHeight = scrollY.interpolate({
-    inputRange: [0, SCROLL_THRESHOLD],
-    outputRange: [HEADER_HEIGHT, HEADER_HEIGHT * 0.6],
-    extrapolate: 'clamp',
-  });
-
-  const headerOpacity = scrollY.interpolate({
-    inputRange: [0, SCROLL_THRESHOLD / 2, SCROLL_THRESHOLD],
-    outputRange: [1, 0.8, 0.6],
-    extrapolate: 'clamp',
-  });
-
-  const titleTranslateY = scrollY.interpolate({
-    inputRange: [0, SCROLL_THRESHOLD],
-    outputRange: [0, -30],
-    extrapolate: 'clamp',
-  });
-
-  const titleScale = scrollY.interpolate({
-    inputRange: [0, HEADER_HEIGHT - HEADER_MIN_HEIGHT],
-    outputRange: [1, 0.8],
-    extrapolate: 'clamp',
-  });
-
-  const titleOpacity = scrollY.interpolate({
-    inputRange: [0, SCROLL_THRESHOLD * 0.8, SCROLL_THRESHOLD],
-    outputRange: [0, 0.5, 1],
-    extrapolate: 'clamp',
-  });
-
+  const scrollX = useRef(new Animated.Value(0)).current;
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const flatListRef = useRef<FlatList>(null);
+  const scrollY = useRef(new Animated.Value(0)).current;
+  
   // 自动轮播图片
   useEffect(() => {
-    if (imageUrls.length <= 1) return;
-    
-    const interval = setInterval(() => {
-      setActiveImageIndex((prev) => (prev + 1) % imageUrls.length);
+    const timer = setInterval(() => {
+      if (imageUrls.length <= 1) return;
+      
+      const nextIndex = (currentIndex + 1) % imageUrls.length;
+      setCurrentIndex(nextIndex);
+      
+      flatListRef.current?.scrollToIndex({
+        index: nextIndex,
+        animated: true,
+      });
     }, 5000);
     
-    return () => clearInterval(interval);
-  }, [imageUrls]);
-
-  // 监听滚动事件
-  const handleScroll = Animated.event(
-    [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-    { useNativeDriver: false }
-  );
-
-  return (
-    <View style={styles.container as ViewStyle}>
-      {/* 设置状态栏为透明 */}
-      <StatusBar translucent backgroundColor="transparent" barStyle="light-content" />
-      
-      {/* 背景图片 */}
-      <Animated.View
-        style={[
-          styles.headerContainer as ViewStyle,
-          {
-            height: headerHeight,
-            opacity: headerOpacity,
-          },
-        ]}
-      >
-        <ImageBackground
-          source={{ uri: imageUrls[activeImageIndex] }}
-          style={styles.headerBackground as ViewStyle}
+    return () => clearInterval(timer);
+  }, [currentIndex, imageUrls.length]);
+  
+  // 监听滚动位置来更新当前索引
+  useEffect(() => {
+    const subscription = scrollX.addListener(({ value }) => {
+      const index = Math.round(value / width);
+      setCurrentIndex(index);
+    });
+    
+    return () => {
+      scrollX.removeListener(subscription);
+    };
+  }, [scrollX]);
+  
+  // 标题部分动画
+  const titleOpacity = scrollY.interpolate({
+    inputRange: [0, HEADER_HEIGHT / 2, HEADER_HEIGHT],
+    outputRange: [1, 0.8, 0],
+    extrapolate: 'clamp',
+  });
+  
+  const titleTranslateY = scrollY.interpolate({
+    inputRange: [0, HEADER_HEIGHT / 2, HEADER_HEIGHT],
+    outputRange: [0, -20, -50],
+    extrapolate: 'clamp',
+  });
+  
+  // 渲染指示器
+  const renderPagination = () => {
+    const inputRange = [-width, 0, width * imageUrls.length];
+    const dotPositon = Animated.divide(scrollX, width);
+    
+    return (
+      <View style={styles.paginationContainer}>
+        {imageUrls.map((_, index) => {
+          const width = dotPositon.interpolate({
+            inputRange: [index - 1, index, index + 1],
+            outputRange: [DOT_SIZE, DOT_INDICATOR_SIZE, DOT_SIZE],
+            extrapolate: 'clamp',
+          });
+          
+          const opacity = dotPositon.interpolate({
+            inputRange: [index - 1, index, index + 1],
+            outputRange: [0.4, 1, 0.4],
+            extrapolate: 'clamp',
+          });
+          
+          const backgroundColor = dotPositon.interpolate({
+            inputRange: [index - 1, index, index + 1],
+            outputRange: ['rgba(255, 255, 255, 0.5)', '#FFFFFF', 'rgba(255, 255, 255, 0.5)'],
+            extrapolate: 'clamp',
+          });
+          
+          return (
+            <Animated.View
+              key={index}
+              style={[
+                styles.dot,
+                {
+                  width,
+                  opacity,
+                  backgroundColor,
+                  height: DOT_SIZE,
+                  marginHorizontal: DOT_SPACING / 2,
+                },
+              ]}
+            />
+          );
+        })}
+      </View>
+    );
+  };
+  
+  // 渲染单个图片
+  const renderImageItem = ({ item, index }: { item: string; index: number }) => {
+    // 图片视差效果
+    const inputRange = [(index - 1) * width, index * width, (index + 1) * width];
+    
+    const translateX = scrollX.interpolate({
+      inputRange,
+      outputRange: [width * 0.1, 0, -width * 0.1],
+      extrapolate: 'clamp',
+    });
+    
+    const scale = scrollX.interpolate({
+      inputRange,
+      outputRange: [1, 1.1, 1],
+      extrapolate: 'clamp',
+    });
+    
+    return (
+      <View style={styles.imageContainer}>
+        <Animated.Image
+          source={{ uri: item }}
+          style={[
+            styles.image,
+            {
+              transform: [
+                { translateX },
+                { scale },
+              ],
+            },
+          ]}
           resizeMode="cover"
+        />
+        
+        {/* 渐变蒙层效果 */}
+        <LinearGradient
+          colors={['transparent', 'rgba(0,0,0,0.2)', 'rgba(0,0,0,0.6)']}
+          style={styles.gradient}
+        />
+      </View>
+    );
+  };
+  
+  // 顶部按钮部分
+  const renderHeaderButtons = () => {
+    return (
+      <View style={styles.headerButtons}>
+        <TouchableOpacity
+          style={styles.headerButton}
+          onPress={onBack}
+          activeOpacity={0.7}
         >
-          {/* 图片渐变叠加层 */}
-          <View style={styles.gradientOverlay as ViewStyle} />
-          
-          {/* 分页指示器 */}
-          {imageUrls.length > 1 && (
-            <View style={styles.paginationContainer as ViewStyle}>
-              {imageUrls.map((_, index) => (
-                <View
-                  key={index}
-                  style={[
-                    styles.paginationDot as ViewStyle,
-                    index === activeImageIndex && styles.paginationDotActive as ViewStyle
-                  ]}
-                />
-              ))}
-            </View>
+          <BlurView intensity={90} tint="dark" style={styles.buttonBlur}>
+            <Ionicons name="chevron-back" size={24} color="white" />
+          </BlurView>
+        </TouchableOpacity>
+        
+        <TouchableOpacity
+          style={styles.headerButton}
+          onPress={onShare}
+          activeOpacity={0.7}
+        >
+          <BlurView intensity={90} tint="dark" style={styles.buttonBlur}>
+            <Ionicons name="share-outline" size={22} color="white" />
+          </BlurView>
+        </TouchableOpacity>
+      </View>
+    );
+  };
+  
+  return (
+    <View style={styles.container}>
+      {/* 状态栏 */}
+      <StatusBar barStyle="light-content" translucent />
+      
+      {/* 图片轮播 */}
+      <View style={styles.carouselContainer}>
+        <Animated.FlatList
+          ref={flatListRef}
+          data={imageUrls}
+          keyExtractor={(_, index) => `image-${index}`}
+          renderItem={renderImageItem}
+          horizontal
+          pagingEnabled
+          showsHorizontalScrollIndicator={false}
+          bounces={false}
+          onScroll={Animated.event(
+            [{ nativeEvent: { contentOffset: { x: scrollX } } }],
+            { useNativeDriver: true }
           )}
+          scrollEventThrottle={16}
+        />
+        
+        {/* 页码指示器 */}
+        {imageUrls.length > 1 && renderPagination()}
+        
+        {/* 头部按钮 */}
+        {renderHeaderButtons()}
+        
+        {/* 文物信息 */}
+        <Animated.View
+          style={[
+            styles.infoOverlay,
+            {
+              opacity: titleOpacity,
+              transform: [{ translateY: titleTranslateY }]
+            }
+          ]}
+        >
+          <Text style={styles.title}>{title}</Text>
+          {subtitle && <Text style={styles.subtitle}>{subtitle}</Text>}
           
-          {/* 标题信息 - 大版本 */}
-          <Animated.View
-            style={[
-              styles.titleContainer as ViewStyle,
-              {
-                transform: [
-                  { translateY: titleTranslateY },
-                  { scale: titleScale },
-                ],
-              },
-            ]}
-          >
-            <Text style={styles.title as TextStyle}>{title}</Text>
-            <Text style={styles.subtitle as TextStyle}>{subtitle}</Text>
-            <View style={styles.dynastyContainer as ViewStyle}>
-              <Text style={styles.dynasty as TextStyle}>{dynasty}</Text>
-              <View style={styles.dot as ViewStyle} />
-              <Text style={styles.era as TextStyle}>{era}</Text>
-            </View>
-          </Animated.View>
-        </ImageBackground>
-      </Animated.View>
-      
-      {/* 固定标题 - 当滚动时显示 */}
-      <Animated.View
-        style={[
-          styles.fixedTitleContainer as ViewStyle,
-          {
-            opacity: titleOpacity,
-            paddingTop: insets.top,
-          },
-        ]}
-      >
-        <Text style={styles.fixedTitle as TextStyle} numberOfLines={1}>{title}</Text>
-        <Text style={styles.fixedSubtitle as TextStyle} numberOfLines={1}>{dynasty} · {era}</Text>
-      </Animated.View>
-      
-      {/* 返回按钮 */}
-      <TouchableOpacity
-        style={[
-          styles.backButton as ViewStyle,
-          { top: insets.top + 10 },
-        ]}
-        onPress={onBack}
-        activeOpacity={0.7}
-      >
-        <Ionicons name="arrow-back" size={24} color={COLORS.white} />
-      </TouchableOpacity>
-      
-      {/* 分享按钮 */}
-      <TouchableOpacity
-        style={[
-          styles.shareButton as ViewStyle,
-          { top: insets.top + 10 },
-        ]}
-        onPress={onShare}
-        activeOpacity={0.7}
-      >
-        <Ionicons name="share-outline" size={24} color={COLORS.white} />
-      </TouchableOpacity>
+          <View style={styles.metaContainer}>
+            {dynasty && (
+              <View style={styles.metaItem}>
+                <Ionicons name="time-outline" size={14} color="rgba(255,255,255,0.8)" />
+                <Text style={styles.metaText}>{dynasty}</Text>
+              </View>
+            )}
+            
+            {era && (
+              <View style={styles.metaItem}>
+                <Ionicons name="calendar-outline" size={14} color="rgba(255,255,255,0.8)" />
+                <Text style={styles.metaText}>{era}</Text>
+              </View>
+            )}
+          </View>
+        </Animated.View>
+      </View>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    zIndex: 10,
-  },
-  headerContainer: {
-    width: SCREEN_WIDTH,
+    width: '100%',
     height: HEADER_HEIGHT,
+    backgroundColor: COLORS.background,
     position: 'relative',
-    overflow: 'hidden',
   },
-  headerBackground: {
+  carouselContainer: {
     width: '100%',
     height: '100%',
-    justifyContent: 'flex-end',
+    overflow: 'hidden',
   },
-  gradientOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0, 0, 0, 0.4)',
-    backgroundImage: Platform.OS === 'web' ? 
-      'linear-gradient(to bottom, rgba(0,0,0,0.1), rgba(0,0,0,0.7))' : 
-      undefined,
+  imageContainer: {
+    width,
+    height: HEADER_HEIGHT,
+    overflow: 'hidden',
   },
-  titleContainer: {
-    padding: SPACING.large,
-    paddingBottom: SPACING.xl,
-  },
-  title: {
-    fontSize: FONTS.size.title,
-    fontFamily: FONTS.family.heading,
-    color: COLORS.white,
-    marginBottom: SPACING.xs,
-    textShadowColor: 'rgba(0, 0, 0, 0.5)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 2,
-  },
-  subtitle: {
-    fontSize: FONTS.size.large,
-    fontFamily: FONTS.family.main,
-    color: COLORS.white,
-    marginBottom: SPACING.small,
-    opacity: 0.9,
-    textShadowColor: 'rgba(0, 0, 0, 0.5)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 2,
-  },
-  dynastyContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  dynasty: {
-    fontSize: FONTS.size.medium,
-    color: COLORS.white,
-    opacity: 0.8,
-  },
-  dot: {
-    width: 4,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: COLORS.white,
-    opacity: 0.8,
-    marginHorizontal: SPACING.xs,
-  },
-  era: {
-    fontSize: FONTS.size.medium,
-    color: COLORS.white,
-    opacity: 0.8,
-  },
-  backButton: {
+  image: {
+    width: '100%',
+    height: '100%',
     position: 'absolute',
-    left: SPACING.medium,
-    zIndex: 20,
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(0,0,0,0.3)',
-    justifyContent: 'center',
-    alignItems: 'center',
   },
-  shareButton: {
+  gradient: {
     position: 'absolute',
-    right: SPACING.medium,
-    zIndex: 20,
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(0,0,0,0.3)',
-    justifyContent: 'center',
-    alignItems: 'center',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    height: HEADER_HEIGHT / 2,
   },
   paginationContainer: {
     flexDirection: 'row',
+    position: 'absolute',
+    bottom: 130,
+    alignSelf: 'center',
+  },
+  dot: {
+    width: DOT_SIZE,
+    height: DOT_SIZE,
+    borderRadius: DOT_SIZE / 2,
+    backgroundColor: 'rgba(255, 255, 255, 0.5)',
+  },
+  headerButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    position: 'absolute',
+    top: Platform.OS === 'ios' ? 50 : 40,
+    width: '100%',
+    paddingHorizontal: SPACING.medium,
+    zIndex: 10,
+  },
+  headerButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    overflow: 'hidden',
+    alignItems: 'center',
     justifyContent: 'center',
+  },
+  buttonBlur: {
+    width: '100%',
+    height: '100%',
     alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 20,
+  },
+  infoOverlay: {
     position: 'absolute',
-    bottom: 100,
+    bottom: 0,
     left: 0,
     right: 0,
+    padding: SPACING.medium,
+    paddingBottom: SPACING.large,
   },
-  paginationDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: 'rgba(255,255,255,0.4)',
-    marginHorizontal: 4,
+  title: {
+    color: 'white',
+    fontSize: FONTS.size.xxl,
+    fontWeight: '600',
+    marginBottom: 4,
+    textShadowColor: 'rgba(0, 0, 0, 0.3)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
+    fontFamily: FONTS.family.special,
   },
-  paginationDotActive: {
-    backgroundColor: COLORS.white,
-    width: 10,
-    height: 10,
-    borderRadius: 5,
+  subtitle: {
+    color: 'rgba(255, 255, 255, 0.85)',
+    fontSize: FONTS.size.medium,
+    marginBottom: 10,
+    textShadowColor: 'rgba(0, 0, 0, 0.3)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
-  fixedTitleContainer: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: 'rgba(0,0,0,0.7)',
+  metaContainer: {
+    flexDirection: 'row',
+    marginTop: SPACING.small,
+  },
+  metaItem: {
+    flexDirection: 'row',
     alignItems: 'center',
-    paddingBottom: SPACING.small,
-    paddingHorizontal: SPACING.large,
-    opacity: 0,
-    zIndex: 15,
+    marginRight: SPACING.medium,
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    borderRadius: RADIUS.small,
   },
-  fixedTitle: {
-    fontSize: FONTS.size.large,
-    fontWeight: '700',
-    color: COLORS.white,
-    textAlign: 'center',
-  },
-  fixedSubtitle: {
+  metaText: {
+    color: 'rgba(255, 255, 255, 0.85)',
     fontSize: FONTS.size.small,
-    color: COLORS.white,
-    opacity: 0.8,
-    textAlign: 'center',
-    marginTop: 2,
+    marginLeft: 4,
   },
 });
 

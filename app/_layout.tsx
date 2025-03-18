@@ -1,5 +1,5 @@
 import FontAwesome from '@expo/vector-icons/FontAwesome';
-import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
+import { DarkTheme, DefaultTheme, ThemeProvider as NavigationThemeProvider } from '@react-navigation/native';
 import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
@@ -9,6 +9,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { StatusBar } from 'expo-status-bar';
 import { COLORS, FONTS } from '../constants/Colors';
 import LoadingIndicator from '../components/ui/LoadingIndicator';
+import { ThemeProvider } from '../components/ui/ThemeProvider';
 
 export {
   // Catch any errors thrown by the Layout component.
@@ -95,26 +96,28 @@ function RootLayoutNav({ colorScheme }: { colorScheme: 'light' | 'dark' }) {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <ThemeProvider value={theme}>
-        <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
-        <Stack
-          screenOptions={{
-            headerShown: false,
-            contentStyle: { backgroundColor: theme.colors.background },
-            animation: 'slide_from_right',
-            presentation: 'card',
-            gestureEnabled: true,
-            animationDuration: 300,
-            // 自定义卡片过渡动画：移除cardStyleInterpolator，改用更简单的配置
-          }}
-        >
-          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-          <Stack.Screen name="relic/[id]" options={{ headerShown: false }} />
-          <Stack.Screen name="region/[id]" options={{ headerShown: false }} />
-          <Stack.Screen name="story/[id]" options={{ headerShown: false, gestureEnabled: false }} />
-          <Stack.Screen name="modal" options={{ presentation: 'modal', headerShown: false }} />
-        </Stack>
-      </ThemeProvider>
+      <NavigationThemeProvider value={theme}>
+        <ThemeProvider initialTheme={colorScheme}>
+          <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
+          <Stack
+            screenOptions={{
+              headerShown: false,
+              contentStyle: { backgroundColor: theme.colors.background },
+              animation: 'slide_from_right',
+              presentation: 'card',
+              gestureEnabled: true,
+              animationDuration: 300,
+              // 自定义卡片过渡动画：移除cardStyleInterpolator，改用更简单的配置
+            }}
+          >
+            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+            <Stack.Screen name="relic/[id]" options={{ headerShown: false }} />
+            <Stack.Screen name="region/[id]" options={{ headerShown: false }} />
+            <Stack.Screen name="story/[id]" options={{ headerShown: false, gestureEnabled: false }} />
+            <Stack.Screen name="modal" options={{ presentation: 'modal', headerShown: false }} />
+          </Stack>
+        </ThemeProvider>
+      </NavigationThemeProvider>
     </GestureHandlerRootView>
   );
 }

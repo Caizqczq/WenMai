@@ -8,23 +8,34 @@ import {
   StyleProp,
   ViewStyle,
   TextStyle,
-  Animated,
   Pressable,
   ImageStyle,
+  Platform,
 } from 'react-native';
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+  withSpring,
+  Easing,
+} from 'react-native-reanimated';
 import { COLORS, FONTS, RADIUS, SHADOWS, SPACING, ANIMATION } from '../../constants/Colors';
 import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 
-type ButtonVariant = 'filled' | 'outlined' | 'text' | 'icon';
+type ButtonVariant = 'filled' | 'outlined' | 'text' | 'icon' | 'gradient';
 type ButtonSize = 'small' | 'medium' | 'large';
+type IconName = React.ComponentProps<typeof Ionicons>['name'];
+
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
 interface ButtonProps {
   variant?: ButtonVariant;
   size?: ButtonSize;
   color?: string;
   title?: string;
-  leftIcon?: string;
-  rightIcon?: string;
+  leftIcon?: IconName;
+  rightIcon?: IconName;
   iconSize?: number;
   disabled?: boolean;
   loading?: boolean;
@@ -34,6 +45,8 @@ interface ButtonProps {
   onPress?: () => void;
   fullWidth?: boolean;
   rounded?: boolean;
+  hapticFeedback?: boolean;
+  activeScale?: number;
   children?: React.ReactNode;
 }
 
@@ -53,11 +66,12 @@ const Button: React.FC<ButtonProps> = ({
   onPress,
   fullWidth = false,
   rounded = false,
+  hapticFeedback = true,
+  activeScale = 0.97,
   children,
 }) => {
   // 动画值
-  const scaleAnim = useRef(new Animated.Value(1)).current;
-  const [opacityAnim] = React.useState(new Animated.Value(0));
+  const scale = useSharedValue(1);
   
   // 字体权重映射
   const fontWeightMapping: Record<string, "400" | "500" | "600" | "700"> = {
@@ -120,7 +134,7 @@ const Button: React.FC<ButtonProps> = ({
         return {
           container: {
             backgroundColor: 'transparent',
-            borderWidth: 1,
+            borderWidth: 1.5,
             borderColor: disabled ? COLORS.inactive : color,
           },
           text: {
@@ -131,7 +145,7 @@ const Button: React.FC<ButtonProps> = ({
         return {
           container: {
             backgroundColor: 'transparent',
-            paddingHorizontal: SPACING.small,
+            borderWidth: 0,
           },
           text: {
             color: disabled ? COLORS.inactive : color,
@@ -141,10 +155,12 @@ const Button: React.FC<ButtonProps> = ({
         return {
           container: {
             backgroundColor: 'transparent',
+            borderWidth: 0,
             paddingHorizontal: 0,
             paddingVertical: 0,
-            borderRadius: 999,
-            aspectRatio: 1,
+            minHeight: 0,
+            width: (iconSize || 20) + 2 * SPACING.small,
+            height: (iconSize || 20) + 2 * SPACING.small,
             alignItems: 'center',
             justifyContent: 'center',
           },
@@ -152,17 +168,37 @@ const Button: React.FC<ButtonProps> = ({
             color: disabled ? COLORS.inactive : color,
           },
         };
+      case 'gradient':
+        return {
+          container: {
+            backgroundColor: disabled ? COLORS.inactive : color,
+            borderWidth: 0,
+          },
+          text: {
+            color: COLORS.white,
+          },
+        };
       case 'filled':
       default:
         return {
           container: {
             backgroundColor: disabled ? COLORS.inactive : color,
+            borderWidth: 0,
           },
           text: {
             color: COLORS.white,
           },
         };
     }
+  };
+
+  // 获取阴影样式
+  const getShadowStyle = (): ViewStyle => {
+    if (disabled || variant === 'text' || variant === 'outlined') {
+      return {};
+    }
+    
+    return SHADOWS.small;
   };
 
   // 获取图标尺寸
@@ -177,179 +213,157 @@ const Button: React.FC<ButtonProps> = ({
     }
   };
 
-  // 处理按压开始
+  // 处理点击事件
+  const handlePress = () => {
+    if (disabled || loading) return;
+    
+    // 触感反馈
+    if (Platform.OS !== 'web' && hapticFeedback) {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    }
+    
+    onPress && onPress();
+  };
+  
+  // 处理按下事件
   const handlePressIn = () => {
-    Animated.parallel([
-      Animated.timing(scaleAnim, {
-        toValue: 0.97,
-        duration: 150,
-        useNativeDriver: true,
-      }),
-      Animated.timing(opacityAnim, {
-        toValue: 0.12,
-        duration: 150,
-        useNativeDriver: false,
-      }),
-    ]).start();
+    if (disabled || loading) return;
+    
+    scale.value = withSpring(activeScale, {
+      damping: 20,
+      stiffness: 300,
+    });
+  };
+  
+  // 处理释放事件
+  const handlePressOut = () => {
+    if (disabled || loading) return;
+    
+    scale.value = withSpring(1, {
+      damping: 20,
+      stiffness: 300,
+    });
   };
 
-  // 处理按压结束
-  const handlePressOut = () => {
-    Animated.parallel([
-      Animated.timing(scaleAnim, {
-        toValue: 1,
-        duration: 150,
-        useNativeDriver: true,
-      }),
-      Animated.timing(opacityAnim, {
-        toValue: 0,
-        duration: 200,
-        useNativeDriver: false,
-      }),
-    ]).start();
-  };
+  // 应用动画样式
+  const animatedStyle = useAnimatedStyle(() => {
+    return {
+      transform: [{ scale: scale.value }],
+    };
+  });
 
   // 获取尺寸和变体样式
   const sizeStyles = getSizeStyles();
   const variantStyles = getVariantStyles();
+  const shadowStyle = getShadowStyle();
 
-  // 组合按钮样式
-  const buttonStyles: ViewStyle = {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderRadius: rounded ? 999 : 8,
-    overflow: 'hidden',
-    opacity: disabled ? 0.6 : 1,
-    ...sizeStyles.container,
-    ...variantStyles.container,
-    ...(fullWidth && { width: '100%', alignSelf: 'center' }),
-  };
-
-  // 组合文本样式
-  const textStyles: TextStyle = {
-    ...styles.text,
-    ...sizeStyles.text,
-    ...variantStyles.text,
-    ...(textStyle as TextStyle),
-  };
-
-  // 渲染内容
-  const renderContent = () => {
-    if (children) return children;
-    
-    // 图标属性
-    const iconProps = {
-      size: getIconSize(),
-      color: variant === 'filled' ? COLORS.white : color,
-    };
-
-    return (
-      <>
-        {loading ? (
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator 
-              color={variant === 'filled' ? COLORS.white : color} 
-              size={size === 'small' ? 'small' : 'small'} 
-            />
-            {loadingText && (
-              <Text style={[styles.loadingText, textStyles]}>{loadingText}</Text>
-            )}
-          </View>
-        ) : (
-          <>
-            {leftIcon && (
-              <Ionicons
-                name={leftIcon as any}
-                {...iconProps}
-                style={title ? styles.leftIcon : undefined}
-              />
-            )}
-            
-            {title && <Text style={textStyles}>{title}</Text>}
-            
-            {rightIcon && (
-              <Ionicons
-                name={rightIcon as any}
-                {...iconProps}
-                style={title ? styles.rightIcon : undefined}
-              />
-            )}
-          </>
-        )}
-      </>
-    );
-  };
-
+  // 渲染按钮
   return (
-    <Pressable
-      disabled={disabled || loading}
-      onPress={onPress}
+    <AnimatedPressable
+      style={[
+        styles.container,
+        sizeStyles.container,
+        variantStyles.container,
+        shadowStyle,
+        {
+          borderRadius: rounded ? RADIUS.round : RADIUS.medium,
+          opacity: disabled ? 0.6 : 1,
+          width: fullWidth ? '100%' : 'auto',
+          overflow: 'hidden',
+        },
+        style,
+        animatedStyle,
+      ]}
+      onPress={handlePress}
       onPressIn={handlePressIn}
       onPressOut={handlePressOut}
-      style={buttonStyles}
-      accessibilityRole="button"
-      accessibilityState={{ disabled }}
+      disabled={disabled || loading}
+      android_ripple={null}
     >
-      {/* 按钮背景动画效果 */}
-      <Animated.View 
-        style={[
-          styles.contentContainer,
-          { transform: [{ scale: scaleAnim }] }
-        ]}
-      >
-        {renderContent()}
-      </Animated.View>
-      
-      {/* 按钮点击涟漪效果 */}
-      <Animated.View 
-        style={[
-          styles.overlay,
-          { 
-            opacity: opacityAnim,
-            backgroundColor: variant === 'filled' ? COLORS.white : color,
-          }
-        ]}
-      />
-    </Pressable>
+      {loading ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator 
+            size="small" 
+            color={variant === 'filled' || variant === 'gradient' ? COLORS.white : color} 
+          />
+          {loadingText && (
+            <Text 
+              style={[
+                styles.text,
+                sizeStyles.text, 
+                variantStyles.text, 
+                { marginLeft: SPACING.small },
+                textStyle
+              ]}
+            >
+              {loadingText}
+            </Text>
+          )}
+        </View>
+      ) : (
+        <View style={styles.contentContainer}>
+          {leftIcon && (
+            <Ionicons 
+              name={leftIcon} 
+              size={iconSize || 20} 
+              color={variant === 'filled' || variant === 'gradient' ? COLORS.white : color}
+              style={{ marginRight: title ? SPACING.xs : 0 }} 
+            />
+          )}
+          
+          {title && (
+            <Text 
+              style={[
+                styles.text, 
+                sizeStyles.text, 
+                { 
+                  fontWeight: getFontWeight(FONTS.weight.medium),
+                  fontFamily: FONTS.family.main,
+                },
+                variantStyles.text,
+                textStyle
+              ]}
+              numberOfLines={1}
+            >
+              {title}
+            </Text>
+          )}
+          
+          {rightIcon && (
+            <Ionicons 
+              name={rightIcon} 
+              size={iconSize || 20} 
+              color={variant === 'filled' || variant === 'gradient' ? COLORS.white : color}
+              style={{ marginLeft: title ? SPACING.xs : 0 }} 
+            />
+          )}
+          
+          {children}
+        </View>
+      )}
+    </AnimatedPressable>
   );
 };
 
 const styles = StyleSheet.create({
-  contentContainer: {
-    flex: 1,
+  container: {
+    flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  contentContainer: {
     flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
     zIndex: 2,
   },
-  overlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    zIndex: 1,
-  },
   text: {
-    fontSize: FONTS.size.medium,
-    fontFamily: FONTS.family.main,
-    color: COLORS.white,
     textAlign: 'center',
-  },
-  leftIcon: {
-    marginRight: SPACING.xs,
-  },
-  rightIcon: {
-    marginLeft: SPACING.xs,
   },
   loadingContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  loadingText: {
-    marginLeft: SPACING.xs,
   },
 });
 
