@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { 
   View, 
   Text, 
@@ -9,23 +9,45 @@ import {
   Dimensions,
   Share,
   ActivityIndicator,
-  Alert
+  FlatList,
+  Animated,
+  StatusBar as RNStatusBar,
+  Platform
 } from 'react-native';
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialIcons, AntDesign } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
+import { BlurView } from 'expo-blur';
+import { LinearGradient } from 'expo-linear-gradient';
+import { COLORS, FONTS, SPACING, RADIUS, SHADOWS } from '../../constants/Colors';
 
-const { width } = Dimensions.get('window');
+const { width, height } = Dimensions.get('window');
+
+// 定义文物数据类型
+interface Relic {
+  id: string;
+  name: string;
+  dynasty: string;
+  era: string;
+  location: string;
+  category?: string;
+  description: string;
+  longDescription: string;
+  imageUrl: string;
+  images: string[];
+  facts: string[];
+}
 
 // 模拟文物数据库 - 在实际应用中应该从API或数据库获取
-const relicsDatabase = [
+const relicsDatabase: Relic[] = [
   { 
     id: '101', 
     name: '青铜器·后母戊鼎', 
     dynasty: '商代',
     era: '公元前1300年-公元前1046年',
     location: '中国国家博物馆',
+    category: '青铜器',
     description: '后母戊鼎是中国商代晚期青铜器，是迄今为止中国出土的最大的商代青铜器。1939年河南安阳出土，原为祭祀礼器，高133厘米，宽110厘米，重832.84千克。',
     longDescription: `后母戊鼎是中国商代晚期青铜器，是迄今为止中国出土的最大的商代青铜器，被誉为"中华第一鼎"。1939年河南安阳出土，原为祭祀礼器，高133厘米，宽110厘米，重832.84千克。
 
@@ -52,6 +74,7 @@ const relicsDatabase = [
     dynasty: '秦代',
     era: '公元前221年-公元前207年',
     location: '秦始皇陵博物院',
+    category: '陶器',
     description: '秦始皇兵马俑是世界文化遗产，1974年在西安临潼区发现，是古代墓葬雕塑的一个类别。兵马俑坑是秦始皇陵的陪葬坑，面积约56,000平方米。',
     longDescription: `秦始皇兵马俑被誉为"世界第八大奇迹"，是世界文化遗产，1974年在西安临潼区被当地农民在打井时偶然发现。
 
@@ -80,6 +103,7 @@ const relicsDatabase = [
     dynasty: '魏晋至元代',
     era: '公元366年-公元1368年',
     location: '甘肃敦煌',
+    category: '绘画',
     description: '敦煌莫高窟始建于十六国的前秦时期，历经十六国、北朝、隋、唐、五代、西夏、元等历代的修建，形成巨大的规模，有洞窟735个，壁画4.5万平方米、泥质彩塑2415尊，是世界上现存规模最大、内容最丰富的佛教艺术地。',
     longDescription: `敦煌莫高窟，又称千佛洞，位于甘肃省敦煌市东南25公里处的鸣沙山东麓、党河西岸的崖壁上，是世界上现存规模最大、内容最丰富的佛教艺术宝库。
 
@@ -99,7 +123,7 @@ const relicsDatabase = [
       "现存洞窟735个，壁画面积4.5万平方米",
       "藏经洞中发现的文献多达5万余件",
       "2021年国庆假期，莫高窟客流量突破10万人次",
-      "莫高窟于1987年被列入世界文化遗产名录"
+      "莫高窟的壁画是研究中古时期中国社会历史的重要资料"
     ]
   },
   { 
@@ -251,438 +275,638 @@ const relicsDatabase = [
 ];
 
 export default function RelicDetailScreen() {
-  const { id } = useLocalSearchParams();
   const router = useRouter();
-  const [relic, setRelic] = useState<any>(null);
+  const { id } = useLocalSearchParams();
+  const [relic, setRelic] = useState<Relic | null>(null);
   const [loading, setLoading] = useState(true);
-  const [activeImageIndex, setActiveImageIndex] = useState(0);
-
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [relatedRelics, setRelatedRelics] = useState<Relic[]>([]);
+  const [isHeaderCollapsed, setIsHeaderCollapsed] = useState(false);
+  
+  // 参考：滚动监听
+  const scrollY = useRef(new Animated.Value(0)).current;
+  const headerHeight = 300; // 图片轮播高度
+  const headerFadeStart = headerHeight - 100;
+  
+  // 加载文物数据
   useEffect(() => {
-    // 模拟从API获取数据
-    setTimeout(() => {
-      const foundRelic = relicsDatabase.find(item => item.id === id);
-      setRelic(foundRelic || null);
-      setLoading(false);
-    }, 500);
-  }, [id]);
-
+    // 不使用 setTimeout 模拟延迟，直接获取数据
+    setLoading(true);
+    const foundRelic = relicsDatabase.find(r => r.id === id);
+    if (foundRelic) {
+      setRelic(foundRelic);
+      
+      // 获取相关文物 - 同类别或同朝代
+      const related = relicsDatabase.filter(
+        r => r.id !== id && (r.category === foundRelic.category || r.dynasty === foundRelic.dynasty)
+      ).slice(0, 3);
+      
+      setRelatedRelics(related);
+    }
+    setLoading(false);
+  }, [id]); // 添加正确的依赖项
+  
+  const handleBackPress = () => {
+    router.back();
+  };
+  
   const handleShare = async () => {
     if (!relic) return;
     
     try {
       await Share.share({
-        message: `看看我在文脉App发现的珍贵文物：${relic.name}，${relic.description}`,
+        message: `查看这件精美的文物：${relic.name}！${relic.description}`,
         title: `文脉 - ${relic.name}`,
       });
-    } catch (error) {
-      console.error('分享失败:', error);
+    } catch (error: any) {
+      console.log(error.message);
     }
   };
-
-  if (loading) {
+  
+  // 监听标题透明度
+  const headerOpacity = scrollY.interpolate({
+    inputRange: [0, headerFadeStart, headerHeight],
+    outputRange: [0, 0, 1],
+    extrapolate: 'clamp',
+  });
+  
+  // 监听标题位置
+  const headerTranslateY = scrollY.interpolate({
+    inputRange: [0, headerHeight],
+    outputRange: [headerHeight / 4, 0],
+    extrapolate: 'clamp',
+  });
+  
+  // 图片背景比例
+  const imageScale = scrollY.interpolate({
+    inputRange: [-200, 0],
+    outputRange: [1.5, 1],
+    extrapolateRight: 'clamp',
+  });
+  
+  const renderImageCarousel = () => {
+    if (!relic) return null;
+    
     return (
-      <SafeAreaView style={styles.loadingContainer}>
-        <StatusBar style="dark" />
-        <ActivityIndicator size="large" color="#8B4513" />
-        <Text style={styles.loadingText}>加载文物信息...</Text>
-      </SafeAreaView>
-    );
-  }
-
-  if (!relic) {
-    return (
-      <SafeAreaView style={styles.errorContainer}>
-        <StatusBar style="dark" />
-        <Text style={styles.errorText}>未找到文物信息</Text>
-        <TouchableOpacity 
-          style={styles.backButton}
-          onPress={() => router.back()}
-        >
-          <Text style={styles.backButtonText}>返回</Text>
-        </TouchableOpacity>
-      </SafeAreaView>
-    );
-  }
-
-  return (
-    <>
-      <Stack.Screen 
-        options={{
-          title: relic.name,
-          headerShown: false,
-        }} 
-      />
-      <StatusBar style="light" />
-      
-      <View style={styles.imageContainer}>
-        <ScrollView
+      <View style={styles.imageCarouselContainer}>
+        <FlatList
+          data={relic.images}
           horizontal
           pagingEnabled
           showsHorizontalScrollIndicator={false}
-          onMomentumScrollEnd={(event) => {
-            const slideIndex = Math.round(
-              event.nativeEvent.contentOffset.x / width
-            );
-            setActiveImageIndex(slideIndex);
-          }}
-        >
-          {relic.images.map((image: string, index: number) => (
-            <Image
-              key={index}
-              source={{ uri: image }}
-              style={styles.headerImage}
+          renderItem={({ item }) => (
+            <Image 
+              source={{ uri: item }} 
+              style={styles.carouselImage}
               resizeMode="cover"
             />
-          ))}
-        </ScrollView>
+          )}
+          onMomentumScrollEnd={(event) => {
+            const newIndex = Math.floor(event.nativeEvent.contentOffset.x / width);
+            setCurrentImageIndex(newIndex);
+          }}
+          keyExtractor={(_, index) => index.toString()}
+        />
         
-        <View style={styles.imagePagination}>
-          {relic.images.map((_: any, index: number) => (
-            <View
-              key={index}
+        {/* 轮播指示器 */}
+        <View style={styles.paginationContainer}>
+          {relic.images.map((_, index) => (
+            <View 
+              key={index} 
               style={[
                 styles.paginationDot,
-                index === activeImageIndex && styles.paginationDotActive,
-              ]}
+                index === currentImageIndex && styles.paginationDotActive
+              ]} 
             />
           ))}
         </View>
         
-        <TouchableOpacity 
-          style={styles.backIconButton}
-          onPress={() => router.back()}
-        >
-          <Ionicons name="arrow-back" size={24} color="#FFF" />
-        </TouchableOpacity>
-        
-        <TouchableOpacity 
-          style={styles.shareIconButton}
-          onPress={handleShare}
-        >
-          <Ionicons name="share-outline" size={24} color="#FFF" />
-        </TouchableOpacity>
-      </View>
-      
-      <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-        <View style={styles.header}>
-          <Text style={styles.title}>{relic.name}</Text>
-          <Text style={styles.dynasty}>{relic.dynasty} · {relic.era}</Text>
-        </View>
-        
-        <View style={styles.infoContainer}>
-          <View style={styles.infoItem}>
-            <Ionicons name="location-outline" size={20} color="#8B4513" />
-            <Text style={styles.infoText}>{relic.location}</Text>
-          </View>
-        </View>
-        
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>文物简介</Text>
-          <Text style={styles.description}>{relic.longDescription}</Text>
-        </View>
-        
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>文物知识</Text>
-          {relic.facts.map((fact: string, index: number) => (
-            <View key={index} style={styles.factItem}>
-              <View style={styles.factBullet} />
-              <Text style={styles.factText}>{fact}</Text>
-            </View>
-          ))}
-        </View>
-        
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>相关推荐</Text>
-          <ScrollView 
-            horizontal 
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.recommendationsContainer}
-          >
-            {relicsDatabase
-              .filter(item => item.id !== relic.id)
-              .slice(0, 3)
-              .map(item => (
-                <TouchableOpacity 
-                  key={item.id}
-                  style={styles.recommendationItem}
-                  onPress={() => {
-                    // 导航到同一页面但使用不同的ID
-                    router.push(`/relic/${item.id}`);
-                  }}
-                >
-                  <Image 
-                    source={{ uri: item.imageUrl }} 
-                    style={styles.recommendationImage} 
-                  />
-                  <Text style={styles.recommendationName} numberOfLines={1}>
-                    {item.name}
-                  </Text>
-                  <Text style={styles.recommendationDynasty} numberOfLines={1}>
-                    {item.dynasty}
-                  </Text>
-                </TouchableOpacity>
-              ))
-            }
-          </ScrollView>
-        </View>
-        
-        <View style={styles.footer}>
+        {/* 顶部操作栏 */}
+        <View style={styles.imageHeaderActions}>
           <TouchableOpacity 
-            style={styles.collectionButton}
-            onPress={() => {
-              // 实际应用中应该是添加到收藏
-              Alert.alert('成功', '已添加到我的收藏');
-            }}
+            style={styles.headerActionButton}
+            onPress={handleBackPress}
           >
-            <Ionicons name="bookmark-outline" size={20} color="#FFF" />
-            <Text style={styles.collectionButtonText}>收藏文物</Text>
+            <Ionicons name="arrow-back" size={24} color={COLORS.white} />
           </TouchableOpacity>
           
           <TouchableOpacity 
-            style={styles.storyButton}
-            onPress={() => {
-              // 检查是否有对应的故事
-              const hasStory = ['101', '102', '103', '104', '105', '106', '107', '108'].includes(relic.id);
-              if (hasStory) {
-                // 导航到故事页面
-                router.push(`/story/${relic.id}`);
-              } else {
-                Alert.alert('提示', '该文物暂无相关故事内容');
-              }
-            }}
+            style={styles.headerActionButton}
+            onPress={handleShare}
           >
-            <Ionicons name="book-outline" size={20} color="#FFF" />
-            <Text style={styles.storyButtonText}>体验文物故事</Text>
+            <Ionicons name="share-outline" size={24} color={COLORS.white} />
           </TouchableOpacity>
         </View>
-      </ScrollView>
-    </>
+        
+        {/* 渐变遮罩 */}
+        <LinearGradient
+          colors={['rgba(0,0,0,0.6)', 'transparent', 'rgba(0,0,0,0.6)']}
+          style={styles.imageGradient}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 0, y: 1 }}
+        />
+      </View>
+    );
+  };
+  
+  const renderRelicInfo = () => {
+    if (!relic) return null;
+    
+    return (
+      <View style={styles.relicInfoContainer}>
+        <View style={styles.basicInfoSection}>
+          <Text style={styles.relicTitle}>{relic.name}</Text>
+          
+          <View style={styles.metaInfoRow}>
+            <View style={styles.dynastyBadge}>
+              <Text style={styles.dynastyText}>{relic.dynasty}</Text>
+            </View>
+            <Text style={styles.eraText}>{relic.era}</Text>
+          </View>
+          
+          <View style={styles.locationContainer}>
+            <Ionicons name="location" size={16} color={COLORS.primary} />
+            <Text style={styles.locationText}>{relic.location}</Text>
+          </View>
+          
+          <Text style={styles.relicDescription}>{relic.description}</Text>
+        </View>
+        
+        <View style={styles.detailsSection}>
+          <View style={styles.sectionHeader}>
+            <View style={styles.sectionTitleContainer}>
+              <View style={styles.sectionTitleDecoration} />
+              <Text style={styles.sectionTitle}>详细介绍</Text>
+            </View>
+          </View>
+          
+          <Text style={styles.detailContent}>{relic.longDescription}</Text>
+        </View>
+        
+        <View style={styles.detailsSection}>
+          <View style={styles.sectionHeader}>
+            <View style={styles.sectionTitleContainer}>
+              <View style={styles.sectionTitleDecoration} />
+              <Text style={styles.sectionTitle}>文物知识点</Text>
+            </View>
+          </View>
+          
+          <View style={styles.factsContainer}>
+            {relic.facts.map((fact, index) => (
+              <View key={index} style={styles.factItem}>
+                <View style={styles.factBullet}>
+                  <Text style={styles.factBulletText}>{index + 1}</Text>
+                </View>
+                <Text style={styles.factText}>{fact}</Text>
+              </View>
+            ))}
+          </View>
+        </View>
+        
+        {relatedRelics.length > 0 && (
+          <View style={styles.detailsSection}>
+            <View style={styles.sectionHeader}>
+              <View style={styles.sectionTitleContainer}>
+                <View style={styles.sectionTitleDecoration} />
+                <Text style={styles.sectionTitle}>相关文物</Text>
+              </View>
+            </View>
+            
+            <View style={styles.relatedRelicsContainer}>
+              {relatedRelics.map((relatedRelic) => (
+                <TouchableOpacity 
+                  key={relatedRelic.id}
+                  style={styles.relatedRelicCard}
+                  onPress={() => router.push(`/relic/${relatedRelic.id}`)}
+                  activeOpacity={0.8}
+                >
+                  <Image 
+                    source={{ uri: relatedRelic.imageUrl }}
+                    style={styles.relatedRelicImage}
+                  />
+                  <View style={styles.relatedRelicInfo}>
+                    <Text style={styles.relatedRelicName} numberOfLines={1}>
+                      {relatedRelic.name}
+                    </Text>
+                    <Text style={styles.relatedRelicDynasty}>{relatedRelic.dynasty}</Text>
+                  </View>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+        )}
+        
+        <TouchableOpacity 
+          style={styles.storyButton}
+          onPress={() => router.push(`/story/${relic.id}`)}
+        >
+          <LinearGradient
+            colors={[COLORS.primary, COLORS.primaryDark]}
+            style={StyleSheet.absoluteFill}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+          />
+          <Text style={styles.storyButtonText}>进入故事体验</Text>
+          <Ionicons name="arrow-forward" size={20} color={COLORS.white} style={styles.storyButtonIcon} />
+        </TouchableOpacity>
+      </View>
+    );
+  };
+  
+  const renderHeaderTitle = () => {
+    return (
+      <Animated.View 
+        style={[
+          styles.floatingHeader,
+          {
+            opacity: headerOpacity,
+            transform: [{ translateY: headerTranslateY }]
+          }
+        ]}
+      >
+        <TouchableOpacity 
+          style={styles.floatingBackButton}
+          onPress={handleBackPress}
+        >
+          <Ionicons name="arrow-back" size={24} color={COLORS.text} />
+        </TouchableOpacity>
+        
+        {relic && (
+          <Text style={styles.floatingHeaderTitle} numberOfLines={1}>
+            {relic.name}
+          </Text>
+        )}
+        
+        <TouchableOpacity 
+          style={styles.floatingShareButton}
+          onPress={handleShare}
+        >
+          <Ionicons name="share-outline" size={22} color={COLORS.text} />
+        </TouchableOpacity>
+      </Animated.View>
+    );
+  };
+  
+  if (loading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={COLORS.primary} />
+        <Text style={styles.loadingText}>正在加载文物信息...</Text>
+      </View>
+    );
+  }
+  
+  if (!relic) {
+    return (
+      <View style={styles.errorContainer}>
+        <Ionicons name="alert-circle-outline" size={50} color={COLORS.error} />
+        <Text style={styles.errorText}>未找到该文物信息</Text>
+        <TouchableOpacity 
+          style={styles.backButton}
+          onPress={handleBackPress}
+        >
+          <Text style={styles.backButtonText}>返回</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+  
+  return (
+    <View style={styles.container}>
+      <StatusBar style="light" />
+      
+      {renderHeaderTitle()}
+      
+      <Animated.ScrollView
+        showsVerticalScrollIndicator={false}
+        scrollEventThrottle={16}
+        onScroll={Animated.event(
+          [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+          { useNativeDriver: true }
+        )}
+      >
+        {renderImageCarousel()}
+        {renderRelicInfo()}
+      </Animated.ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: COLORS.background,
+  },
+  
+  // 加载状态
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#F5EFE0',
+    backgroundColor: COLORS.background,
   },
   loadingText: {
-    marginTop: 16,
-    fontSize: 16,
-    color: '#8B4513',
+    marginTop: SPACING.medium,
+    fontSize: FONTS.size.medium,
+    color: COLORS.text,
   },
+  
+  // 错误状态
   errorContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#F5EFE0',
+    backgroundColor: COLORS.background,
+    padding: SPACING.large,
   },
   errorText: {
-    fontSize: 18,
-    color: '#D32F2F',
-    marginBottom: 24,
+    marginTop: SPACING.medium,
+    fontSize: FONTS.size.large,
+    color: COLORS.text,
+    marginBottom: SPACING.large,
+    textAlign: 'center',
   },
   backButton: {
-    backgroundColor: '#8B4513',
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-    borderRadius: 8,
+    paddingHorizontal: SPACING.large,
+    paddingVertical: SPACING.medium,
+    backgroundColor: COLORS.primary,
+    borderRadius: RADIUS.medium,
   },
   backButtonText: {
-    fontSize: 16,
-    color: '#FFF',
-    fontWeight: 'bold',
+    fontSize: FONTS.size.medium,
+    color: COLORS.white,
+    fontWeight: '600',
   },
-  container: {
-    flex: 1,
-    backgroundColor: '#F5EFE0',
-  },
-  imageContainer: {
-    height: width * 0.8,
-    width: '100%',
-  },
-  headerImage: {
-    width,
-    height: width * 0.8,
-  },
-  imagePagination: {
+  
+  // 浮动标题
+  floatingHeader: {
     position: 'absolute',
-    bottom: 16,
+    top: Platform.OS === 'ios' ? 50 : 20,
+    left: 0,
+    right: 0,
     flexDirection: 'row',
-    alignSelf: 'center',
+    alignItems: 'center',
+    zIndex: 100,
+    paddingHorizontal: SPACING.medium,
+    height: 50,
+  },
+  floatingBackButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.8)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  floatingShareButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.8)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  floatingHeaderTitle: {
+    flex: 1,
+    fontSize: FONTS.size.large,
+    fontWeight: '600',
+    color: COLORS.text,
+    textAlign: 'center',
+    marginHorizontal: SPACING.small,
+  },
+  
+  // 图片轮播
+  imageCarouselContainer: {
+    height: 300,
+    width: '100%',
+    position: 'relative',
+  },
+  carouselImage: {
+    width,
+    height: 300,
+  },
+  imageHeaderActions: {
+    position: 'absolute',
+    top: Platform.OS === 'ios' ? 50 : 20,
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingHorizontal: SPACING.medium,
+    zIndex: 10,
+  },
+  headerActionButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(0,0,0,0.3)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  imageGradient: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 300,
+    zIndex: 1,
+  },
+  paginationContainer: {
+    position: 'absolute',
+    bottom: SPACING.medium,
+    width: '100%',
+    flexDirection: 'row',
+    justifyContent: 'center',
+    zIndex: 10,
   },
   paginationDot: {
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: 'rgba(255, 255, 255, 0.5)',
-    margin: 4,
+    backgroundColor: 'rgba(255,255,255,0.5)',
+    marginHorizontal: 4,
   },
   paginationDotActive: {
-    backgroundColor: '#FFFFFF',
-    width: 10,
-    height: 10,
-    borderRadius: 5,
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: COLORS.white,
   },
-  backIconButton: {
-    position: 'absolute',
-    top: 48,
-    left: 16,
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
+  
+  // 文物信息
+  relicInfoContainer: {
+    backgroundColor: COLORS.background,
+    borderTopLeftRadius: RADIUS.large,
+    borderTopRightRadius: RADIUS.large,
+    marginTop: -20,
+    paddingBottom: 30,
   },
-  shareIconButton: {
-    position: 'absolute',
-    top: 48,
-    right: 16,
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
+  basicInfoSection: {
+    backgroundColor: COLORS.white,
+    borderRadius: RADIUS.large,
+    margin: SPACING.medium,
+    padding: SPACING.medium,
+    ...SHADOWS.medium,
   },
-  header: {
-    padding: 20,
+  relicTitle: {
+    fontSize: FONTS.size.large,
+    fontWeight: '700',
+    color: COLORS.text,
+    marginBottom: SPACING.small,
   },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#5D4037',
-    marginBottom: 8,
-  },
-  dynasty: {
-    fontSize: 16,
-    color: '#8D6E63',
-  },
-  infoContainer: {
-    flexDirection: 'row',
-    paddingHorizontal: 20,
-    marginBottom: 16,
-  },
-  infoItem: {
+  metaInfoRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginRight: 16,
+    marginBottom: SPACING.small,
   },
-  infoText: {
-    fontSize: 14,
-    color: '#8B4513',
+  dynastyBadge: {
+    backgroundColor: `${COLORS.primary}20`,
+    paddingHorizontal: SPACING.small,
+    paddingVertical: 4,
+    borderRadius: RADIUS.small,
+    marginRight: SPACING.small,
+  },
+  dynastyText: {
+    fontSize: FONTS.size.small,
+    color: COLORS.primary,
+    fontWeight: '600',
+  },
+  eraText: {
+    fontSize: FONTS.size.small,
+    color: COLORS.textLight,
+  },
+  locationContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: SPACING.medium,
+  },
+  locationText: {
+    fontSize: FONTS.size.small,
+    color: COLORS.textSecondary,
     marginLeft: 4,
   },
-  section: {
-    padding: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E8E0D5',
+  relicDescription: {
+    fontSize: FONTS.size.medium,
+    lineHeight: 24,
+    color: COLORS.text,
+  },
+  
+  // 详情区域
+  detailsSection: {
+    backgroundColor: COLORS.white,
+    borderRadius: RADIUS.large,
+    margin: SPACING.medium,
+    marginTop: 0,
+    padding: SPACING.medium,
+    ...SHADOWS.small,
+  },
+  sectionHeader: {
+    marginBottom: SPACING.medium,
+  },
+  sectionTitleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  sectionTitleDecoration: {
+    width: 4,
+    height: 24,
+    backgroundColor: COLORS.primary,
+    borderRadius: RADIUS.small,
+    marginRight: SPACING.small,
   },
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#5D4037',
-    marginBottom: 12,
+    fontSize: FONTS.size.large,
+    fontWeight: '600',
+    color: COLORS.text,
   },
-  description: {
-    fontSize: 16,
+  detailContent: {
+    fontSize: FONTS.size.medium,
     lineHeight: 24,
-    color: '#5D4037',
+    color: COLORS.text,
+  },
+  
+  // 知识点区域
+  factsContainer: {
+    marginTop: SPACING.small,
   },
   factItem: {
     flexDirection: 'row',
-    marginBottom: 8,
+    marginBottom: SPACING.medium,
     alignItems: 'flex-start',
   },
   factBullet: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: '#8B4513',
-    marginTop: 8,
-    marginRight: 8,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: `${COLORS.primary}20`,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: SPACING.small,
+    marginTop: 2,
+  },
+  factBulletText: {
+    fontSize: FONTS.size.small,
+    fontWeight: '700',
+    color: COLORS.primary,
   },
   factText: {
     flex: 1,
-    fontSize: 16,
-    lineHeight: 24,
-    color: '#5D4037',
+    fontSize: FONTS.size.medium,
+    lineHeight: 22,
+    color: COLORS.text,
   },
-  recommendationsContainer: {
-    paddingRight: 20,
+  
+  // 相关文物
+  relatedRelicsContainer: {
+    marginTop: SPACING.small,
   },
-  recommendationItem: {
-    width: 140,
-    marginRight: 12,
-    backgroundColor: '#FFF',
-    borderRadius: 8,
+  relatedRelicCard: {
+    flexDirection: 'row',
+    backgroundColor: COLORS.backgroundLight,
+    borderRadius: RADIUS.medium,
+    marginBottom: SPACING.small,
     overflow: 'hidden',
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.2,
-    shadowRadius: 2,
+    height: 80,
   },
-  recommendationImage: {
-    width: '100%',
-    height: 100,
+  relatedRelicImage: {
+    width: 80,
+    height: 80,
   },
-  recommendationName: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: '#5D4037',
-    padding: 8,
-    paddingBottom: 4,
-  },
-  recommendationDynasty: {
-    fontSize: 12,
-    color: '#8D6E63',
-    paddingHorizontal: 8,
-    paddingBottom: 8,
-  },
-  footer: {
-    padding: 20,
-    paddingBottom: 40,
-    alignItems: 'center',
-  },
-  collectionButton: {
-    flexDirection: 'row',
-    backgroundColor: '#8B4513',
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-    borderRadius: 8,
-    alignItems: 'center',
+  relatedRelicInfo: {
+    flex: 1,
+    padding: SPACING.small,
     justifyContent: 'center',
-    width: '80%',
   },
-  collectionButtonText: {
-    fontSize: 16,
-    color: '#FFF',
-    fontWeight: 'bold',
-    marginLeft: 8,
+  relatedRelicName: {
+    fontSize: FONTS.size.medium,
+    fontWeight: '600',
+    color: COLORS.text,
+    marginBottom: 4,
   },
+  relatedRelicDynasty: {
+    fontSize: FONTS.size.small,
+    color: COLORS.textLight,
+  },
+  
+  // 底部按钮
   storyButton: {
+    height: 50,
+    borderRadius: RADIUS.medium,
     flexDirection: 'row',
-    backgroundColor: '#3F51B5',
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-    borderRadius: 8,
-    alignItems: 'center',
     justifyContent: 'center',
-    width: '80%',
-    marginTop: 16,
-    elevation: 3,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.3,
-    shadowRadius: 2,
+    alignItems: 'center',
+    marginHorizontal: SPACING.medium,
+    marginTop: SPACING.small,
+    marginBottom: SPACING.large,
+    overflow: 'hidden',
+    ...SHADOWS.medium,
   },
   storyButtonText: {
-    fontSize: 16,
-    color: '#FFF',
-    fontWeight: 'bold',
-    marginLeft: 8,
+    fontSize: FONTS.size.medium,
+    fontWeight: '600',
+    color: COLORS.white,
+  },
+  storyButtonIcon: {
+    marginLeft: SPACING.small,
   },
 }); 
