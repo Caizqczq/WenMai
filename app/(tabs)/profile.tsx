@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   View, 
   Text, 
@@ -9,7 +9,8 @@ import {
   Dimensions, 
   Platform,
   ImageBackground,
-  FlatList
+  FlatList,
+  ActivityIndicator
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -18,17 +19,13 @@ import { Ionicons, MaterialIcons, FontAwesome5, MaterialCommunityIcons } from '@
 import { COLORS, FONTS, SPACING, RADIUS, SHADOWS } from '../../constants/Colors';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
+import { relicService } from '../../data/services';
+import { Relic } from '../../data/types';
+import LoadingIndicator from '../../components/ui/LoadingIndicator';
 
 const { width } = Dimensions.get('window');
 
 // 定义类型
-interface RelicItem {
-  id: string;
-  name: string;
-  dynasty: string;
-  image: string;
-}
-
 interface Achievement {
   id: string;
   name: string;
@@ -63,16 +60,36 @@ const mockUser = {
     { id: '1', type: 'view', target: '秦始皇兵马俑', time: '2小时前' },
     { id: '2', type: 'collect', target: '越王勾践剑', time: '昨天' },
     { id: '3', type: 'complete', target: '历史探索者成就', time: '3天前' },
-  ],
-  collectedRelics: [
-    { id: '102', name: '越王勾践剑', dynasty: '春秋晚期', image: 'https://picsum.photos/id/65/300/300' },
-    { id: '103', name: '秦始皇兵马俑', dynasty: '秦代', image: 'https://picsum.photos/id/338/300/300' },
-    { id: '104', name: '唐三彩', dynasty: '唐代', image: 'https://picsum.photos/id/23/300/300' },
   ]
 };
 
 export default function ProfileScreen() {
   const router = useRouter();
+  const [collectedRelics, setCollectedRelics] = useState<Relic[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  
+  useEffect(() => {
+    loadCollectedRelics();
+  }, []);
+  
+  const loadCollectedRelics = async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      
+      // 在实际应用中，应该只加载用户收藏的文物
+      // 这里先模拟获取用户收藏的文物（从所有文物中随机选取3个）
+      const allRelics = await relicService.getAllRelics();
+      const shuffled = [...allRelics].sort(() => 0.5 - Math.random());
+      setCollectedRelics(shuffled.slice(0, 3));
+    } catch (err) {
+      console.error('加载收藏文物失败:', err);
+      setError('无法加载收藏数据');
+    } finally {
+      setIsLoading(false);
+    }
+  };
   
   const renderMenuItem = (icon: React.ReactNode, title: string, onPress: () => void) => (
     <TouchableOpacity 
@@ -101,10 +118,10 @@ export default function ProfileScreen() {
     }
   };
 
-  const renderCollectedRelic = ({ item }: { item: RelicItem }) => (
+  const renderCollectedRelic = ({ item }: { item: Relic }) => (
     <TouchableOpacity 
       style={styles.relicCard}
-      onPress={() => router.push(`/relic/${item.id}`)}
+      onPress={() => router.push(`/relic/${item.id}` as any)}
       activeOpacity={0.8}
     >
       <Image source={{ uri: item.image }} style={styles.relicImage} />
@@ -178,14 +195,36 @@ export default function ProfileScreen() {
             </TouchableOpacity>
           </View>
           
-          <FlatList
-            data={mockUser.collectedRelics}
-            renderItem={renderCollectedRelic}
-            keyExtractor={item => item.id}
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.relicListContainer}
-          />
+          {isLoading ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="small" color={COLORS.primary} />
+              <Text style={styles.loadingText}>加载收藏...</Text>
+            </View>
+          ) : error ? (
+            <View style={styles.errorContainer}>
+              <Text style={styles.errorText}>{error}</Text>
+              <TouchableOpacity 
+                style={styles.retryButton}
+                onPress={loadCollectedRelics}
+              >
+                <Text style={styles.retryButtonText}>重试</Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <FlatList
+              data={collectedRelics}
+              renderItem={renderCollectedRelic}
+              keyExtractor={item => item.id}
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.relicListContainer}
+              ListEmptyComponent={
+                <View style={styles.emptyContainer}>
+                  <Text style={styles.emptyText}>暂无收藏的文物</Text>
+                </View>
+              }
+            />
+          )}
         </View>
         
         {/* 成就进度 */}
@@ -491,5 +530,46 @@ const styles = StyleSheet.create({
     fontSize: FONTS.size.small,
     color: COLORS.textLight,
     marginBottom: 4,
+  },
+  loadingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: SPACING.medium,
+  },
+  loadingText: {
+    fontSize: FONTS.size.small,
+    color: COLORS.primary,
+    marginLeft: SPACING.small,
+  },
+  errorContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: SPACING.medium,
+  },
+  errorText: {
+    fontSize: FONTS.size.small,
+    color: COLORS.error,
+    marginRight: SPACING.small,
+  },
+  retryButton: {
+    padding: SPACING.small,
+    borderWidth: 1,
+    borderColor: COLORS.primary,
+    borderRadius: RADIUS.small,
+  },
+  retryButtonText: {
+    fontSize: FONTS.size.small,
+    color: COLORS.primary,
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  emptyText: {
+    fontSize: FONTS.size.small,
+    color: COLORS.textLight,
   },
 }); 

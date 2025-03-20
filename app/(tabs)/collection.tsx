@@ -21,65 +21,17 @@ import * as MediaLibrary from 'expo-media-library';
 import * as ImageManipulator from 'expo-image-manipulator';
 import { Ionicons, FontAwesome5, MaterialCommunityIcons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
+import { relicService } from '../../data/services';
+import { Relic } from '../../data/types';
+import LoadingIndicator from '../../components/ui/LoadingIndicator';
+import { COLORS } from '../../constants/Colors';
 
 const { width, height } = Dimensions.get('window');
 
-// 模拟文物数据库
-const relicsDatabase = [
-  { 
-    id: '101', 
-    name: '青铜器·后母戊鼎', 
-    dynasty: '商代',
-    description: '后母戊鼎是中国商代晚期青铜器，是迄今为止中国出土的最大的商代青铜器。1939年河南安阳出土，原为祭祀礼器，高133厘米，宽110厘米，重832.84千克。',
-    imageUrl: 'https://picsum.photos/id/866/400/300', // 使用随机图片代替
-    confidence: 0.92
-  },
-  { 
-    id: '102', 
-    name: '秦始皇兵马俑', 
-    dynasty: '秦代',
-    description: '秦始皇兵马俑是世界文化遗产，1974年在西安临潼区发现，是古代墓葬雕塑的一个类别。兵马俑坑是秦始皇陵的陪葬坑，面积约56,000平方米。',
-    imageUrl: 'https://picsum.photos/id/338/400/300',
-    confidence: 0.89
-  },
-  { 
-    id: '103', 
-    name: '莫高窟壁画', 
-    dynasty: '魏晋至元代',
-    description: '敦煌莫高窟始建于十六国的前秦时期，历经十六国、北朝、隋、唐、五代、西夏、元等历代的修建，形成巨大的规模，有洞窟735个，壁画4.5万平方米、泥质彩塑2415尊，是世界上现存规模最大、内容最丰富的佛教艺术地。',
-    imageUrl: 'https://picsum.photos/id/43/400/300',
-    confidence: 0.78
-  },
-  { 
-    id: '104', 
-    name: '越王勾践剑', 
-    dynasty: '春秋晚期',
-    description: '越王勾践剑，春秋晚期越国的青铜剑，1965年12月在湖北江陵望山1号墓出土，是国家一级文物。此剑长55.7厘米，剑身上部有两排共8个字的鸟篆铭文："越王鸠浅（勾践）自作用剑"。',
-    imageUrl: 'https://picsum.photos/id/65/400/300',
-    confidence: 0.85
-  },
-  { 
-    id: '105', 
-    name: '唐三彩', 
-    dynasty: '唐代',
-    description: '唐三彩是盛行于唐代的一种低温釉陶器，主要以黄、绿、白三种颜色为主，也有褐、蓝、黑、紫等色彩。三彩胎多为白色，质地较细腻，一般先用白色化妆土处理器表，再施釉彩绘。',
-    imageUrl: 'https://picsum.photos/id/23/400/300',
-    confidence: 0.81
-  }
-];
-
 // 定义类型
-interface RelicData {
-  id: string;
-  name: string;
-  dynasty: string;
-  description: string;
-  imageUrl: string;
-  confidence: number;
-}
-
-interface RecognizedRelic extends RelicData {
+interface RecognizedRelic extends Relic {
   capturedImageUri: string;
+  confidence: number;
 }
 
 interface RecentRecognition {
@@ -104,6 +56,9 @@ export default function ARRecognitionScreen() {
   const [showHistoryModal, setShowHistoryModal] = useState(false);
   const [showGuide, setShowGuide] = useState(true);
   const fadeAnim = useRef(new Animated.Value(0)).current;
+  const [relics, setRelics] = useState<Relic[]>([]);
+  const [isLoadingRelics, setIsLoadingRelics] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   
   const [permission, requestPermission] = useCameraPermissions();
   const [mediaLibraryPermission, requestMediaLibraryPermission] = useState<boolean>(false);
@@ -113,6 +68,9 @@ export default function ARRecognitionScreen() {
       // 请求相册权限
       const { status: mediaStatus } = await MediaLibrary.requestPermissionsAsync();
       requestMediaLibraryPermission(mediaStatus === 'granted');
+      
+      // 加载文物数据
+      loadRelics();
     })();
     
     // 动画效果
@@ -133,8 +91,22 @@ export default function ARRecognitionScreen() {
     }
   }, []);
   
+  const loadRelics = async () => {
+    try {
+      setIsLoadingRelics(true);
+      setError(null);
+      const relicsData = await relicService.getAllRelics();
+      setRelics(relicsData);
+    } catch (err) {
+      console.error('加载文物数据失败:', err);
+      setError('无法加载文物数据，请重试');
+    } finally {
+      setIsLoadingRelics(false);
+    }
+  };
+  
   const takePicture = async () => {
-    if (!cameraRef.current) return;
+    if (!cameraRef.current || relics.length === 0) return;
     
     try {
       setIsRecognizing(true);
@@ -156,12 +128,13 @@ export default function ARRecognitionScreen() {
       // 模拟识别延迟
       setTimeout(() => {
         // 随机选择一个文物作为"识别结果"
-        const recognizedItem = relicsDatabase[Math.floor(Math.random() * relicsDatabase.length)];
+        const recognizedItem = relics[Math.floor(Math.random() * relics.length)];
         
         // 保存识别结果和图片URI
         setRecognizedRelic({
           ...recognizedItem,
-          capturedImageUri: processedImage.uri
+          capturedImageUri: processedImage.uri,
+          confidence: Math.random() * 0.3 + 0.7 // 生成0.7-1.0之间的随机置信度
         });
         
         // 添加到最近识别列表
@@ -202,7 +175,7 @@ export default function ARRecognitionScreen() {
   const handleRelicPress = (relicId: string) => {
     setShowResultModal(false);
     setShowHistoryModal(false);
-    router.push(`/relic/${relicId}`);
+    router.push(`/relic/${relicId}` as any);
   };
   
   const toggleCameraType = () => {
@@ -211,6 +184,85 @@ export default function ARRecognitionScreen() {
   
   const toggleFlash = () => {
     setFlashEnabled(current => !current);
+  };
+  
+  // 渲染识别结果模态框
+  const renderResultModal = () => {
+    if (!recognizedRelic) return null;
+    
+    return (
+      <Modal
+        visible={showResultModal}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowResultModal(false)}
+      >
+        <BlurView intensity={90} style={styles.modalContainer}>
+          <View style={styles.resultContainer}>
+            <View style={styles.resultHeader}>
+              <Text style={styles.resultTitle}>文物识别结果</Text>
+              <TouchableOpacity 
+                style={styles.closeButton}
+                onPress={() => setShowResultModal(false)}
+              >
+                <Ionicons name="close" size={24} color="#000" />
+              </TouchableOpacity>
+            </View>
+            
+            <ScrollView 
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={styles.resultContent}
+            >
+              <View style={styles.comparisonContainer}>
+                <View style={styles.capturedImageContainer}>
+                  <Text style={styles.comparisonLabel}>您拍摄的照片:</Text>
+                  <Image 
+                    source={{ uri: recognizedRelic.capturedImageUri }}
+                    style={styles.comparisonImage}
+                    resizeMode="cover"
+                  />
+                </View>
+                
+                <View style={styles.relicCard}>
+                  <Image 
+                    source={{ uri: recognizedRelic.image }}
+                    style={styles.relicImage}
+                    resizeMode="cover"
+                  />
+                  <View style={styles.relicInfo}>
+                    <Text style={styles.relicName}>{recognizedRelic.name}</Text>
+                    <Text style={styles.relicDynasty}>{recognizedRelic.dynasty}</Text>
+                    <View style={styles.confidenceBar}>
+                      <View 
+                        style={[
+                          styles.confidenceFill, 
+                          {width: `${recognizedRelic.confidence * 100}%`}
+                        ]} 
+                      />
+                    </View>
+                    <Text style={styles.confidenceText}>
+                      相似度: {Math.round(recognizedRelic.confidence * 100)}%
+                    </Text>
+                  </View>
+                </View>
+              </View>
+              
+              <Text style={styles.relicDescription}>
+                {recognizedRelic.description || "暂无详细描述"}
+              </Text>
+              
+              <TouchableOpacity 
+                style={styles.learnMoreButton}
+                onPress={() => handleRelicPress(recognizedRelic.id)}
+              >
+                <Text style={styles.learnMoreButtonText}>了解更多</Text>
+                <Ionicons name="arrow-forward" size={16} color="#fff" />
+              </TouchableOpacity>
+            </ScrollView>
+          </View>
+        </BlurView>
+      </Modal>
+    );
   };
   
   // 没有获取到相机权限信息
@@ -438,91 +490,7 @@ export default function ARRecognitionScreen() {
       </Modal>
       
       {/* 识别结果弹窗 */}
-      <Modal
-        visible={showResultModal}
-        animationType="slide"
-        transparent={true}
-        onRequestClose={() => setShowResultModal(false)}
-      >
-        <View style={styles.modalContainer}>
-          <BlurView intensity={90} style={styles.blurModalBackground} tint="dark">
-            <View style={[styles.modalContent, {backgroundColor: '#F5EFE0'}]}>
-              <View style={styles.modalHeaderBar} />
-              <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>识别结果</Text>
-                <TouchableOpacity
-                  style={styles.closeButton}
-                  onPress={() => setShowResultModal(false)}
-                >
-                  <Ionicons name="close" size={24} color="#8B4513" />
-                </TouchableOpacity>
-              </View>
-              
-              {recognizedRelic && (
-                <ScrollView 
-                  style={styles.resultContainer}
-                  contentContainerStyle={styles.resultContainerContent}
-                  showsVerticalScrollIndicator={false}
-                >
-                  <View style={styles.resultImageContainer}>
-                    <Image 
-                      source={{ uri: recognizedRelic.capturedImageUri }}
-                      style={styles.capturedImage}
-                    />
-                  </View>
-                  
-                  <View style={styles.confidenceContainer}>
-                    <View style={styles.confidenceHeaderRow}>
-                      <MaterialCommunityIcons name="check-decagram" size={22} color="#8B4513" />
-                      <Text style={styles.confidenceHeader}>
-                        文物识别结果
-                      </Text>
-                    </View>
-                    <Text style={styles.confidenceText}>
-                      匹配度: {Math.round(recognizedRelic.confidence * 100)}%
-                    </Text>
-                    <View style={styles.confidenceBar}>
-                      <View 
-                        style={[
-                          styles.confidenceFill, 
-                          { width: `${recognizedRelic.confidence * 100}%` }
-                        ]} 
-                      />
-                    </View>
-                  </View>
-                  
-                  <View style={styles.relicCard}>
-                    <Image 
-                      source={{ uri: recognizedRelic.imageUrl }}
-                      style={styles.relicImage}
-                      resizeMode="cover"
-                    />
-                    <View style={styles.relicCardContent}>
-                      <Text style={styles.relicName}>{recognizedRelic.name}</Text>
-                      <View style={styles.dynastyContainer}>
-                        <FontAwesome5 name="history" size={14} color="#8D6E63" />
-                        <Text style={styles.relicDynasty}>{recognizedRelic.dynasty}</Text>
-                      </View>
-                      
-                      <Text style={styles.relicDescription}>
-                        {recognizedRelic.description}
-                      </Text>
-                    </View>
-                  </View>
-                  
-                  <TouchableOpacity
-                    style={styles.viewDetailButton}
-                    onPress={() => handleRelicPress(recognizedRelic.id)}
-                  >
-                    <Text style={styles.viewDetailButtonText}>查看详细信息</Text>
-                    <Ionicons name="arrow-forward" size={18} color="#FFF" />
-                  </TouchableOpacity>
-                </ScrollView>
-              )}
-            </View>
-          </BlurView>
-        </View>
-      </Modal>
+      {renderResultModal()}
     </SafeAreaView>
   );
 }
@@ -917,51 +885,69 @@ const styles = StyleSheet.create({
   resultContainer: {
     flex: 1,
   },
-  resultContainerContent: {
+  resultHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 16,
+  },
+  resultTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#8B4513',
+  },
+  resultContent: {
     padding: 16,
     paddingBottom: 30,
   },
-  resultImageContainer: {
-    borderRadius: 16,
-    overflow: 'hidden',
-    elevation: 3,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 3,
+  comparisonContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
     marginBottom: 16,
   },
-  capturedImage: {
+  capturedImageContainer: {
+    flex: 1,
+    marginRight: 16,
+  },
+  comparisonLabel: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#8B4513',
+    marginBottom: 8,
+  },
+  comparisonImage: {
     width: '100%',
     height: 200,
     borderRadius: 16,
   },
-  confidenceContainer: {
+  relicCard: {
+    flex: 1,
     backgroundColor: '#FFF',
     borderRadius: 16,
-    padding: 16,
-    marginBottom: 20,
-    elevation: 2,
+    overflow: 'hidden',
+    elevation: 3,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
   },
-  confidenceHeaderRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
+  relicImage: {
+    width: '100%',
+    height: 200,
   },
-  confidenceHeader: {
-    fontSize: 16,
+  relicInfo: {
+    padding: 16,
+  },
+  relicName: {
+    fontSize: 22,
     fontWeight: 'bold',
-    color: '#8B4513',
-    marginLeft: 8,
+    color: '#5D4037',
+    marginBottom: 8,
   },
-  confidenceText: {
+  relicDynasty: {
     fontSize: 14,
     color: '#8D6E63',
-    marginBottom: 8,
+    marginBottom: 16,
   },
   confidenceBar: {
     height: 8,
@@ -973,46 +959,17 @@ const styles = StyleSheet.create({
     height: '100%',
     backgroundColor: '#8B4513',
   },
-  relicCard: {
-    backgroundColor: '#FFF',
-    borderRadius: 16,
-    overflow: 'hidden',
-    elevation: 3,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    marginBottom: 20,
-  },
-  relicImage: {
-    width: '100%',
-    height: 200,
-  },
-  relicCardContent: {
-    padding: 16,
-  },
-  relicName: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: '#5D4037',
-    marginBottom: 8,
-  },
-  dynastyContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  relicDynasty: {
+  confidenceText: {
     fontSize: 14,
     color: '#8D6E63',
-    marginLeft: 6,
+    marginBottom: 8,
   },
   relicDescription: {
     fontSize: 14,
     lineHeight: 22,
     color: '#5D4037',
   },
-  viewDetailButton: {
+  learnMoreButton: {
     backgroundColor: '#8B4513',
     paddingVertical: 14,
     paddingHorizontal: 24,
@@ -1026,7 +983,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.2,
     shadowRadius: 3,
   },
-  viewDetailButtonText: {
+  learnMoreButtonText: {
     fontSize: 16,
     color: '#FFF',
     fontWeight: 'bold',

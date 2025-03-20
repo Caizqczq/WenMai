@@ -6,81 +6,12 @@ import { useRouter } from 'expo-router';
 import * as Location from 'expo-location';
 import { WebView } from 'react-native-webview';
 import Constants from 'expo-constants';
-
-// 文物地区数据
-interface Region {
-  id: string;
-  name: string;
-  description: string;
-  latitude: number;
-  longitude: number;
-  zoom: number;
-}
-
-interface RelicSite {
-  id: string;
-  name: string;
-  latitude: number;
-  longitude: number;
-  regionId: string;
-}
+import { Region, RelicSite } from '@/data/types';
+import { regionService } from '@/data/services';
+import LoadingIndicator from '@/components/ui/LoadingIndicator';
 
 // 从expo配置中获取百度地图API密钥
 const BAIDU_MAP_AK = Constants.expoConfig?.extra?.baiduMapAK || '';
-
-const regions: Region[] = [
-  { 
-    id: '1', 
-    name: '华北', 
-    description: '包含北京、天津等地区的文化遗产', 
-    latitude: 39.9042, 
-    longitude: 116.4074, // 北京坐标
-    zoom: 7
-  },
-  { 
-    id: '2', 
-    name: '华东', 
-    description: '包含上海、江苏、浙江等地区的文化遗产', 
-    latitude: 31.2304, 
-    longitude: 121.4737, // 上海坐标
-    zoom: 7
-  },
-  { 
-    id: '3', 
-    name: '华南', 
-    description: '包含广东、广西等地区的文化遗产', 
-    latitude: 23.1291, 
-    longitude: 113.2644, // 广州坐标
-    zoom: 7
-  },
-  { 
-    id: '4', 
-    name: '西北', 
-    description: '包含陕西、甘肃等地区的文化遗产', 
-    latitude: 34.3416, 
-    longitude: 108.9398, // 西安坐标
-    zoom: 7
-  },
-  { 
-    id: '5', 
-    name: '西南', 
-    description: '包含四川、云南等地区的文化遗产', 
-    latitude: 30.5723, 
-    longitude: 104.0665, // 成都坐标
-    zoom: 7
-  },
-];
-
-// 著名文物坐标
-const relicSites: RelicSite[] = [
-  { id: '101', name: '故宫博物院', latitude: 39.9163, longitude: 116.3972, regionId: '1' },
-  { id: '102', name: '秦始皇兵马俑', latitude: 34.3841, longitude: 109.2785, regionId: '4' },
-  { id: '103', name: '莫高窟', latitude: 40.0359, longitude: 94.8096, regionId: '4' },
-  { id: '104', name: '三星堆博物馆', latitude: 31.1350, longitude: 104.3998, regionId: '5' },
-  { id: '105', name: '苏州博物馆', latitude: 31.3213, longitude: 120.6288, regionId: '2' },
-  { id: '106', name: '陕西历史博物馆', latitude: 34.2377, longitude: 108.9376, regionId: '4' },
-  { id: '107', name: '湖南省博物馆', latitude: 28.1926, longitude: 112.9850, regionId: '3' },
-];
 
 const MapScreen = () => {
   const router = useRouter();
@@ -96,6 +27,32 @@ const MapScreen = () => {
     longitude: 104.1954, // 中国大致中心点
     zoom: 4
   });
+  
+  // 数据状态
+  const [regions, setRegions] = useState<Region[]>([]);
+  const [relicSites, setRelicSites] = useState<RelicSite[]>([]);
+  const [dataLoaded, setDataLoaded] = useState(false);
+
+  // 加载区域和点位数据
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        const [regionsData, sitesData] = await Promise.all([
+          regionService.getAllRegions(),
+          regionService.getAllRelicSites()
+        ]);
+        
+        setRegions(regionsData);
+        setRelicSites(sitesData);
+        setDataLoaded(true);
+      } catch (error) {
+        console.error('加载地图数据失败:', error);
+        Alert.alert('数据加载错误', '无法加载地图数据，请稍后重试');
+      }
+    };
+    
+    loadData();
+  }, []);
 
   // HTML内容包含百度地图
   const generateMapHTML = () => {
@@ -248,217 +205,202 @@ const MapScreen = () => {
   useEffect(() => {
     (async () => {
       try {
-        setIsLoading(true);
-        
-        // 请求位置权限
+        // 获取位置权限
         let { status } = await Location.requestForegroundPermissionsAsync();
         if (status !== 'granted') {
-          setErrorMsg('需要位置权限来显示您在地图上的位置');
-          setIsLoading(false);
+          setErrorMsg('未授予位置权限');
           return;
         }
 
-        try {
-          // 获取当前位置
-          let location = await Location.getCurrentPositionAsync({
-            accuracy: Location.Accuracy.Balanced,
-            timeInterval: 10000
-          });
-          setLocation(location);
-        } catch (locError) {
-          console.error('获取位置失败:', locError);
-          setErrorMsg('无法获取您的位置，默认显示中国地图。请确保已开启位置服务。');
-        }
-        
-        setIsLoading(false);
+        // 获取当前位置
+        let location = await Location.getCurrentPositionAsync({});
+        setLocation(location);
       } catch (error) {
-        console.error('位置服务初始化失败:', error);
-        setErrorMsg('位置服务初始化失败，请检查权限设置');
-        setIsLoading(false);
+        console.log("获取位置失败", error);
+        setErrorMsg('获取位置信息失败');
       }
     })();
   }, []);
-  
-  // WebView消息处理
+
+  // 处理来自WebView的消息
   const handleWebViewMessage = (event: any) => {
     try {
       const data = JSON.parse(event.nativeEvent.data);
       
-      if (data.type === 'mapError') {
-        setMapError(`地图加载错误: ${data.message}`);
-        return;
-      }
-      
-      if (data.type === 'region') {
-        const region = regions.find(r => r.id === data.id);
-        if (region) {
-          setSelectedRegion(region);
-          setMapCenter({
-            latitude: region.latitude,
-            longitude: region.longitude,
-            zoom: region.zoom
-          });
-          // 重新加载WebView来更新地图中心
-          webViewRef.current?.reload();
-        }
-      } else if (data.type === 'relicSite') {
-        handleRelicSitePress(data.id);
+      switch (data.type) {
+        case 'mapLoaded':
+          setIsLoading(false);
+          break;
+        case 'mapError':
+          setMapError(data.message);
+          setIsLoading(false);
+          break;
+        case 'region':
+          handleRegionSelect(data.id);
+          break;
+        case 'relicSite':
+          handleRelicSiteSelect(data.id);
+          break;
       }
     } catch (error) {
-      console.error('消息处理错误:', error);
+      console.error('处理WebView消息失败:', error);
     }
   };
 
-  const handleRegionPress = (regionId: string) => {
-    const region = regions.find(r => r.id === regionId);
-    if (region) {
-      setSelectedRegion(region);
-      setMapCenter({
-        latitude: region.latitude,
-        longitude: region.longitude,
-        zoom: region.zoom
-      });
-      // 注入JS来更新地图中心
-      const js = `
-        try {
-          map.centerAndZoom(new BMapGL.Point(${region.longitude}, ${region.latitude}), ${region.zoom});
-          true;
-        } catch(error) {
-          false;
-        }
-      `;
-      webViewRef.current?.injectJavaScript(js);
+  // 处理区域选择
+  const handleRegionSelect = async (regionId: string) => {
+    try {
+      const region = await regionService.getRegionById(regionId);
+      if (region) {
+        setSelectedRegion(region);
+        setMapCenter({
+          latitude: region.latitude,
+          longitude: region.longitude,
+          zoom: region.zoom
+        });
+        
+        // 重新加载包含该区域标记的地图
+        setTimeout(() => {
+          webViewRef.current?.reload();
+        }, 100);
+      }
+    } catch (error) {
+      console.error('获取区域数据失败:', error);
     }
   };
 
-  const handleRelicSitePress = (relicId: string) => {
-    // 导航到文物详情页
-    router.push(`/relic/${relicId}`);
+  // 处理文物点位选择
+  const handleRelicSiteSelect = async (siteId: string) => {
+    try {
+      const site = await regionService.getRelicSiteById(siteId);
+      if (site) {
+        setSelectedRelicSite(site);
+        // 可以在这里导航到点位详情页或显示弹窗
+        // router.push(`/site/${siteId}`);
+      }
+    } catch (error) {
+      console.error('获取点位数据失败:', error);
+    }
   };
 
-  const handleBackToChina = () => {
+  // 返回全国视图
+  const handleResetMapView = () => {
     setSelectedRegion(null);
     setMapCenter({
-      latitude: 35.8617, 
+      latitude: 35.8617,
       longitude: 104.1954,
       zoom: 4
     });
-    // 注入JS来更新地图中心
-    const js = `
-      try {
-        map.centerAndZoom(new BMapGL.Point(104.1954, 35.8617), 4);
-        true;
-      } catch(error) {
-        false;
-      }
-    `;
-    webViewRef.current?.injectJavaScript(js);
+    webViewRef.current?.reload();
   };
 
-  const openLocationSettings = () => {
-    // 打开设备位置设置
-    if (Platform.OS === 'ios') {
-      Linking.openURL('app-settings:');
-    } else {
-      Linking.openSettings();
-    }
-  };
+  // 加载状态
+  if (isLoading || !dataLoaded) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <StatusBar style="dark" />
+        <View style={styles.loadingContainer}>
+          <LoadingIndicator 
+            type="page" 
+            message="正在加载地图..." 
+            color="#8B4513" 
+          />
+        </View>
+      </SafeAreaView>
+    );
+  }
 
+  // 错误状态
+  if (mapError) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <StatusBar style="dark" />
+        <View style={styles.errorContainer}>
+          <Text style={styles.errorTitle}>地图加载失败</Text>
+          <Text style={styles.errorMessage}>{mapError}</Text>
+          <TouchableOpacity 
+            style={styles.tryAgainButton}
+            onPress={() => {
+              setMapError(null);
+              setIsLoading(true);
+              webViewRef.current?.reload();
+            }}
+          >
+            <Text style={styles.tryAgainButtonText}>重试</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  // 正常显示地图
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar style="dark" />
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>中国文物地图</Text>
-        {selectedRegion && (
-          <TouchableOpacity style={styles.backButton} onPress={handleBackToChina}>
-            <Text style={styles.backButtonText}>返回全国</Text>
-          </TouchableOpacity>
-        )}
-      </View>
       
-      {isLoading ? (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#8B4513" />
-          <Text style={styles.loadingText}>加载地图中...</Text>
-        </View>
-      ) : (
-        <View style={styles.mapContainer}>
-          <WebView
-            ref={webViewRef}
-            originWhitelist={['*']}
-            source={{ html: generateMapHTML() }}
-            style={styles.map}
-            onMessage={handleWebViewMessage}
-            javaScriptEnabled={true}
-            domStorageEnabled={true}
-            startInLoadingState={true}
-            onError={(error) => {
-              console.error('WebView错误:', error);
-              setMapError('地图加载失败，请检查网络连接');
-            }}
-            renderLoading={() => (
-              <View style={styles.loadingContainer}>
-                <ActivityIndicator size="large" color="#8B4513" />
-                <Text style={styles.loadingText}>加载地图中...</Text>
-              </View>
-            )}
-          />
-          
-          {/* 区域选择按钮 */}
-          <View style={styles.regionsButtonContainer}>
-            <Text style={styles.regionsTitle}>文物区域</Text>
-            <View style={styles.regionsButtons}>
-              {regions.map(region => (
-                <TouchableOpacity
-                  key={region.id}
-                  style={[
-                    styles.regionButton,
-                    selectedRegion?.id === region.id && styles.selectedRegionButton
-                  ]}
-                  onPress={() => handleRegionPress(region.id)}
-                >
-                  <Text 
-                    style={[
-                      styles.regionButtonText,
-                      selectedRegion?.id === region.id && styles.selectedRegionButtonText
-                    ]}
-                  >
-                    {region.name}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
+      {/* 百度地图WebView */}
+      <WebView
+        ref={webViewRef}
+        source={{ html: generateMapHTML() }}
+        style={styles.map}
+        onMessage={handleWebViewMessage}
+        javaScriptEnabled={true}
+        geolocationEnabled={true}
+        domStorageEnabled={true}
+        startInLoadingState={true}
+        renderLoading={() => (
+          <View style={styles.loadingOverlay}>
+            <ActivityIndicator size="large" color="#8B4513" />
+            <Text style={styles.loadingText}>加载地图中...</Text>
           </View>
-          
-          {/* 地图错误显示 */}
-          {mapError && (
-            <View style={styles.mapErrorContainer}>
-              <Text style={styles.mapErrorTitle}>地图加载错误</Text>
-              <Text style={styles.mapErrorText}>{mapError}</Text>
-              <TouchableOpacity 
-                style={styles.retryButton}
-                onPress={() => {
-                  setMapError(null);
-                  webViewRef.current?.reload();
-                }}
-              >
-                <Text style={styles.retryButtonText}>重试</Text>
-              </TouchableOpacity>
-            </View>
-          )}
-        </View>
+        )}
+      />
+      
+      {/* 重置视图按钮 */}
+      {selectedRegion && (
+        <TouchableOpacity
+          style={styles.resetButton}
+          onPress={handleResetMapView}
+        >
+          <Text style={styles.resetButtonText}>返回全国</Text>
+        </TouchableOpacity>
       )}
       
-      {errorMsg && (
-        <View style={styles.errorContainer}>
-          <Text style={styles.errorText}>{errorMsg}</Text>
-          <TouchableOpacity 
-            style={styles.locationSettingsButton}
-            onPress={openLocationSettings}
-          >
-            <Text style={styles.locationSettingsButtonText}>打开位置设置</Text>
-          </TouchableOpacity>
-        </View>
+      {/* 点位信息卡片 */}
+      {selectedRelicSite && (
+        <TouchableOpacity 
+          style={styles.siteInfoCard}
+          onPress={() => {
+            if (selectedRelicSite.relicIds && selectedRelicSite.relicIds.length > 0) {
+              router.push(`/relic/${selectedRelicSite.relicIds[0]}`);
+            }
+          }}
+        >
+          <View style={styles.siteInfoHeader}>
+            <Text style={styles.siteInfoTitle}>{selectedRelicSite.name}</Text>
+            <TouchableOpacity
+              onPress={() => setSelectedRelicSite(null)}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              <Text style={styles.closeButton}>✕</Text>
+            </TouchableOpacity>
+          </View>
+          {selectedRelicSite.description && (
+            <Text style={styles.siteInfoDescription}>{selectedRelicSite.description}</Text>
+          )}
+          <View style={styles.siteInfoActions}>
+            <TouchableOpacity 
+              style={styles.siteInfoButton}
+              onPress={() => {
+                if (selectedRelicSite.relicIds && selectedRelicSite.relicIds.length > 0) {
+                  router.push(`/relic/${selectedRelicSite.relicIds[0]}`);
+                }
+              }}
+            >
+              <Text style={styles.siteInfoButtonText}>查看文物</Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
       )}
     </SafeAreaView>
   );
@@ -467,34 +409,19 @@ const MapScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F5EFE0',
+    backgroundColor: '#F9F6F0',
   },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 16,
-  },
-  headerTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#8B4513',
-    textAlign: 'center',
-  },
-  backButton: {
-    position: 'absolute',
-    right: 16,
-    backgroundColor: '#8B4513',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-  },
-  backButtonText: {
-    fontSize: 14,
-    color: '#FFF',
+  map: {
+    flex: 1,
   },
   loadingContainer: {
     flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(255, 255, 255, 0.8)',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -503,118 +430,104 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#8B4513',
   },
-  mapContainer: {
-    flex: 1,
-    position: 'relative',
-  },
-  map: {
-    flex: 1,
-  },
-  regionsButtonContainer: {
-    position: 'absolute',
-    bottom: 24,
-    left: 16,
-    right: 16,
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
-    borderRadius: 8,
-    padding: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 4,
-  },
-  regionsTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#8B4513',
-    marginBottom: 8,
-  },
-  regionsButtons: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-  },
-  regionButton: {
-    backgroundColor: '#FFF',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-    marginRight: 8,
-    marginBottom: 8,
-    borderWidth: 1,
-    borderColor: '#8B4513',
-  },
-  selectedRegionButton: {
-    backgroundColor: '#8B4513',
-  },
-  regionButtonText: {
-    fontSize: 14,
-    color: '#8B4513',
-  },
-  selectedRegionButtonText: {
-    color: '#FFF',
-  },
   errorContainer: {
-    padding: 16,
-    backgroundColor: 'rgba(255, 0, 0, 0.1)',
-    margin: 16,
-    borderRadius: 8,
+    flex: 1,
+    justifyContent: 'center',
     alignItems: 'center',
+    padding: 20,
   },
-  errorText: {
+  errorTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
     color: '#D32F2F',
-    fontSize: 14,
-    textAlign: 'center',
     marginBottom: 10,
   },
-  locationSettingsButton: {
-    backgroundColor: '#8B4513',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 6,
-    marginTop: 8,
-  },
-  locationSettingsButtonText: {
-    color: 'white',
-    fontSize: 14,
-  },
-  mapErrorContainer: {
-    position: 'absolute',
-    top: '50%',
-    left: 16,
-    right: 16,
-    transform: [{ translateY: -70 }],
-    backgroundColor: 'rgba(255, 255, 255, 0.95)',
-    padding: 16,
-    borderRadius: 8,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 5,
-  },
-  mapErrorTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#D32F2F',
-    marginBottom: 8,
-  },
-  mapErrorText: {
-    fontSize: 14,
+  errorMessage: {
+    fontSize: 16,
     color: '#333',
     textAlign: 'center',
-    marginBottom: 16,
+    marginBottom: 20,
   },
-  retryButton: {
+  tryAgainButton: {
     backgroundColor: '#8B4513',
-    paddingHorizontal: 24,
-    paddingVertical: 8,
-    borderRadius: 6,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 5,
   },
-  retryButtonText: {
+  tryAgainButtonText: {
     color: 'white',
     fontSize: 16,
+    fontWeight: '500',
+  },
+  resetButton: {
+    position: 'absolute',
+    top: 20,
+    right: 20,
+    backgroundColor: 'rgba(139, 69, 19, 0.9)',
+    paddingHorizontal: 15,
+    paddingVertical: 8,
+    borderRadius: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  resetButtonText: {
+    color: 'white',
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  siteInfoCard: {
+    position: 'absolute',
+    bottom: 20,
+    left: 20,
+    right: 20,
+    backgroundColor: 'white',
+    borderRadius: 10,
+    padding: 15,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  siteInfoHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  siteInfoTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#8B4513',
+    flex: 1,
+  },
+  closeButton: {
+    fontSize: 18,
+    color: '#888',
+    padding: 5,
+  },
+  siteInfoDescription: {
+    fontSize: 14,
+    color: '#333',
+    marginBottom: 15,
+  },
+  siteInfoActions: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+  },
+  siteInfoButton: {
+    backgroundColor: '#8B4513',
+    paddingHorizontal: 15,
+    paddingVertical: 8,
+    borderRadius: 5,
+  },
+  siteInfoButtonText: {
+    color: 'white',
+    fontSize: 14,
+    fontWeight: '500',
   },
 });
 

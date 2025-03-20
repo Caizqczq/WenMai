@@ -303,6 +303,8 @@ export default function TabLayout() {
             iconName = focused ? 'map' : 'map-outline';
           } else if (route.name === 'relics') {
             iconName = focused ? 'cube' : 'cube-outline';
+          } else if (route.name === 'explore') {
+            iconName = focused ? 'compass' : 'compass-outline';
           } else if (route.name === 'collection') {
             iconName = focused ? 'scan' : 'scan-outline';
           } else if (route.name === 'profile') {
@@ -325,6 +327,12 @@ export default function TabLayout() {
         name="index"
         options={{
           title: '文物地图',
+        }}
+      />
+      <Tabs.Screen
+        name="explore"
+        options={{
+          title: '探索',
         }}
       />
       <Tabs.Screen

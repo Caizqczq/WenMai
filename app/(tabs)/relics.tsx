@@ -5,7 +5,8 @@ import {
   Image, Dimensions, Platform, Animated,
   Pressable,
   NativeSyntheticEvent,
-  NativeScrollEvent
+  NativeScrollEvent,
+  ActivityIndicator
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -15,199 +16,83 @@ import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import { COLORS, FONTS, SPACING, RADIUS, SHADOWS } from '../../constants/Colors';
 import Card from '../../components/ui/Card';
+import { Relic, Category, Dynasty, FilterOptions } from '../../data/types';
+import { relicService, categoryService, dynastyService } from '../../data/services';
+import LoadingIndicator from '../../components/ui/LoadingIndicator';
 
 const { width, height } = Dimensions.get('window');
-
-// 定义类型
-interface Relic {
-  id: string;
-  name: string;
-  dynasty: string;
-  category: string;
-  color: string;
-  image: string;
-  description?: string;
-}
-
-interface Category {
-  id: string;
-  name: string;
-  icon: string;
-}
-
-interface Dynasty {
-  id: string;
-  name: string;
-}
-
-// 精选文物数据
-const featuredRelics: Relic[] = [
-  {
-    id: '101',
-    name: '青铜器·后母戊鼎',
-    dynasty: '商代',
-    category: '青铜器',
-    color: '#CD7F32',
-    image: 'https://picsum.photos/id/866/800/600',
-    description: '后母戊鼎是中国商代晚期青铜器，是迄今为止中国出土的最大的商代青铜器。高133厘米，重832.84千克，为国家一级文物。'
-  },
-  {
-    id: '102',
-    name: '秦始皇兵马俑',
-    dynasty: '秦代',
-    category: '陶器',
-    color: '#B87333',
-    image: 'https://picsum.photos/id/338/800/600',
-    description: '兵马俑，即秦始皇兵马俑，亦简称秦兵马俑或秦俑，第一批全国重点文物保护单位，第一批中国世界遗产，位于今陕西省西安市临潼区秦始皇陵以东1.5千米处。'
-  },
-  {
-    id: '103',
-    name: '莫高窟壁画',
-    dynasty: '魏晋至元代',
-    category: '绘画',
-    color: '#E34234',
-    image: 'https://picsum.photos/id/43/800/600',
-    description: '敦煌莫高窟始建于十六国的前秦时期，历经十六国、北朝、隋、唐、五代、西夏、元等历代的修建，有洞窟735个，壁画4.5万平方米、泥质彩塑2415尊。'
-  },
-];
-
-// 文物数据
-const relicsData: Relic[] = [
-  {
-    id: '101',
-    name: '青铜器·后母戊鼎',
-    dynasty: '商代',
-    category: '青铜器',
-    color: '#CD7F32',
-    image: 'https://picsum.photos/id/866/800/600',
-  },
-  {
-    id: '102',
-    name: '秦始皇兵马俑',
-    dynasty: '秦代',
-    category: '陶器',
-    color: '#B87333',
-    image: 'https://picsum.photos/id/338/800/600',
-  },
-  {
-    id: '103',
-    name: '莫高窟壁画',
-    dynasty: '魏晋至元代',
-    category: '绘画',
-    color: '#E34234',
-    image: 'https://picsum.photos/id/43/800/600',
-  },
-  {
-    id: '104',
-    name: '唐三彩',
-    dynasty: '唐代',
-    category: '陶器',
-    color: '#B87333',
-    image: 'https://picsum.photos/id/24/800/600',
-  },
-  {
-    id: '105',
-    name: '越王勾践剑',
-    dynasty: '春秋晚期',
-    category: '青铜器',
-    color: '#CD7F32',
-    image: 'https://picsum.photos/id/65/800/600',
-  },
-  {
-    id: '106',
-    name: '马踏飞燕',
-    dynasty: '东汉',
-    category: '青铜器',
-    color: '#CD7F32',
-    image: 'https://picsum.photos/id/98/800/600',
-  },
-  {
-    id: '107',
-    name: '清明上河图',
-    dynasty: '北宋',
-    category: '绘画',
-    color: '#E34234',
-    image: 'https://picsum.photos/id/28/800/600',
-  },
-  {
-    id: '108',
-    name: '富春山居图',
-    dynasty: '元代',
-    category: '绘画',
-    color: '#E34234',
-    image: 'https://picsum.photos/id/42/800/600',
-  },
-  {
-    id: '109',
-    name: '皿方罍',
-    dynasty: '西周',
-    category: '青铜器',
-    color: '#CD7F32',
-    image: 'https://picsum.photos/id/70/800/600',
-  },
-  {
-    id: '110',
-    name: '粉彩花卉纹瓷瓶',
-    dynasty: '清代',
-    category: '瓷器',
-    color: '#4682B4',
-    image: 'https://picsum.photos/id/112/800/600',
-  },
-];
-
-// 分类数据
-const categories: Category[] = [
-  { id: 'all', name: '全部', icon: '🏛️' },
-  { id: '青铜器', name: '青铜器', icon: '🔔' },
-  { id: '玉器', name: '玉器', icon: '💎' },
-  { id: '陶器', name: '陶器', icon: '🏺' },
-  { id: '瓷器', name: '瓷器', icon: '🍶' },
-  { id: '书画', name: '书画', icon: '🖌️' },
-  { id: '织物', name: '织物', icon: '🧵' },
-  { id: '雕刻', name: '雕刻', icon: '🗿' },
-  { id: '绘画', name: '绘画', icon: '🎨' },
-];
-
-// 朝代数据
-const dynasties: Dynasty[] = [
-  { id: 'all', name: '全部' },
-  { id: '史前', name: '史前' },
-  { id: '夏商周', name: '夏商周' },
-  { id: '秦汉', name: '秦汉' },
-  { id: '魏晋南北朝', name: '魏晋南北朝' },
-  { id: '隋唐', name: '隋唐' },
-  { id: '宋元', name: '宋元' },
-  { id: '明清', name: '明清' },
-];
 
 export default function RelicsScreen() {
   const router = useRouter();
   const [searchText, setSearchText] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
-  const [selectedDynasty, setSelectedDynasty] = useState('all');
+  const [selectedDynasty, setSelectedDynasty] = useState('allDynasty');
   const [currentCarouselIndex, setCurrentCarouselIndex] = useState(0);
   const scrollX = useRef(new Animated.Value(0)).current;
   const carouselRef = useRef<FlatList<Relic>>(null);
   const carouselInterval = useRef<NodeJS.Timeout | null>(null);
   
+  // 数据状态
+  const [featuredRelics, setFeaturedRelics] = useState<Relic[]>([]);
+  const [relicsData, setRelicsData] = useState<Relic[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [dynasties, setDynasties] = useState<Dynasty[]>([]);
+  const [filteredRelics, setFilteredRelics] = useState<Relic[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // 加载数据
+  const loadData = async () => {
+    try {
+      setIsLoading(true);
+      
+      // 并行加载所有数据
+      const [relicsResult, featuredRelicsResult, categoriesResult, dynastiesResult] = await Promise.all([
+        relicService.getAllRelics(),
+        relicService.getFeaturedRelics(),
+        categoryService.getAllCategories(),
+        dynastyService.getAllDynasties()
+      ]);
+      
+      setRelicsData(relicsResult);
+      setFeaturedRelics(featuredRelicsResult);
+      setCategories(categoriesResult);
+      setDynasties(dynastiesResult);
+      
+      // 初始时显示所有文物
+      setFilteredRelics(relicsResult);
+    } catch (error) {
+      console.error('加载数据失败:', error);
+      setError('加载数据失败，请稍后重试');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
+  useEffect(() => {
+    loadData();
+  }, []);
+  
   // 自动轮播
   useEffect(() => {
     startCarouselTimer();
     return () => clearCarouselTimer();
-  }, [currentCarouselIndex]);
+  }, [currentCarouselIndex, featuredRelics]);
   
   const startCarouselTimer = () => {
     clearCarouselTimer();
-    carouselInterval.current = setInterval(() => {
-      if (carouselRef.current) {
-        const nextIndex = (currentCarouselIndex + 1) % featuredRelics.length;
-        carouselRef.current.scrollToIndex({
-          index: nextIndex,
-          animated: true,
-        });
-        setCurrentCarouselIndex(nextIndex);
-      }
-    }, 5000);
+    if (featuredRelics.length > 0) {
+      carouselInterval.current = setInterval(() => {
+        if (carouselRef.current) {
+          const nextIndex = (currentCarouselIndex + 1) % featuredRelics.length;
+          carouselRef.current.scrollToIndex({
+            index: nextIndex,
+            animated: true,
+          });
+          setCurrentCarouselIndex(nextIndex);
+        }
+      }, 5000);
+    }
   };
   
   const clearCarouselTimer = () => {
@@ -224,18 +109,66 @@ export default function RelicsScreen() {
   };
   
   // 过滤文物
-  const filteredRelics = relicsData.filter(relic => {
-    const matchesCategory = selectedCategory === 'all' || relic.category === selectedCategory;
-    const matchesDynasty = selectedDynasty === 'all' || relic.dynasty.includes(selectedDynasty);
-    const matchesSearch = searchText === '' || 
-      relic.name.toLowerCase().includes(searchText.toLowerCase()) ||
-      relic.dynasty.toLowerCase().includes(searchText.toLowerCase());
-    return matchesCategory && matchesDynasty && matchesSearch;
-  });
+  useEffect(() => {
+    const filterOptions: FilterOptions = {
+      category: selectedCategory === 'all' ? undefined : selectedCategory,
+      dynasty: selectedDynasty === 'allDynasty' ? undefined : selectedDynasty,
+      searchText
+    };
+    
+    console.log('筛选条件变更:', filterOptions);
+    
+    const filterRelics = async () => {
+      try {
+        const results = await relicService.getFilteredRelics(filterOptions);
+        console.log(`筛选结果: 找到${results.length}个文物`);
+        setFilteredRelics(results);
+      } catch (error) {
+        console.error('过滤文物失败:', error);
+      }
+    };
+    
+    filterRelics();
+  }, [selectedCategory, selectedDynasty, searchText]);
   
   const handleRelicPress = (relicId: string) => {
-    router.push(`/relic/${relicId}`);
+    console.log(`准备导航到文物详情，ID: ${relicId}`);
+    router.push(`/relic/${relicId}` as any);
   };
+  
+  // 渲染加载状态
+  if (isLoading) {
+    return (
+      <SafeAreaView style={styles.loadingContainer}>
+        <LoadingIndicator 
+          type="page"
+          message="正在加载文物库..." 
+          color={COLORS.primary}
+        />
+      </SafeAreaView>
+    );
+  }
+  
+  // 渲染错误状态
+  if (error) {
+    return (
+      <SafeAreaView style={styles.errorContainer}>
+        <Ionicons name="alert-circle-outline" size={60} color={COLORS.error} />
+        <Text style={styles.errorText}>{error}</Text>
+        <TouchableOpacity 
+          style={styles.retryButton}
+          onPress={() => {
+            setError(null);
+            setIsLoading(true);
+            // 重新加载数据
+            loadData();
+          }}
+        >
+          <Text style={styles.retryButtonText}>重试</Text>
+        </TouchableOpacity>
+      </SafeAreaView>
+    );
+  }
   
   const renderPagination = () => {
     return (
@@ -254,19 +187,22 @@ export default function RelicsScreen() {
             extrapolate: 'clamp',
           });
           
-          // 点的不透明度
+          // 点的透明度
           const opacity = scrollX.interpolate({
             inputRange,
-            outputRange: [0.3, 1, 0.3],
+            outputRange: [0.4, 1, 0.4],
             extrapolate: 'clamp',
           });
           
           return (
             <Animated.View
-              key={index}
+              key={`dot-${index}`}
               style={[
-                styles.paginationDot,
-                { width: dotWidth, opacity }
+                styles.dot,
+                { 
+                  width: dotWidth,
+                  opacity,
+                },
               ]}
             />
           );
@@ -315,7 +251,10 @@ export default function RelicsScreen() {
           styles.dynastyItem,
           isSelected && styles.dynastyItemSelected
         ]}
-        onPress={() => setSelectedDynasty(item.id)}
+        onPress={() => {
+          console.log(`选择了朝代: ${item.id} - ${item.name}`);
+          setSelectedDynasty(item.id);
+        }}
         activeOpacity={0.7}
       >
         <Text 
@@ -346,182 +285,189 @@ export default function RelicsScreen() {
           <View 
             style={[
               styles.relicCategoryIndicator,
-              { backgroundColor: item.color }
-            ]} 
-          />
+              { backgroundColor: getCategoryColor(item.category) }
+            ]}
+          >
+            <Text style={styles.relicCategoryText}>{item.category}</Text>
+          </View>
         </View>
-        
         <View style={styles.relicInfo}>
-          <Text style={styles.relicName} numberOfLines={2}>
-            {item.name}
-          </Text>
-          
+          <Text style={styles.relicName} numberOfLines={2}>{item.name}</Text>
           <View style={styles.relicMeta}>
-            <View style={styles.dynastyBadge}>
-              <Text style={styles.dynastyBadgeText}>{item.dynasty}</Text>
+            <Text style={styles.relicDynasty}>{item.dynasty}</Text>
+            <View style={styles.viewsContainer}>
+              <Ionicons name="eye-outline" size={12} color={COLORS.textSecondary} />
+              <Text style={styles.viewsText}>
+                {item.views !== undefined ? item.views : 0}
+              </Text>
             </View>
-            <Text style={styles.categoryLabel}>{item.category}</Text>
           </View>
         </View>
       </TouchableOpacity>
     );
   };
   
-  const renderCarouselItem = ({ item, index }: { item: Relic, index: number }) => {
+  const renderEmptyState = () => {
     return (
-      <TouchableOpacity 
-        style={styles.carouselItem}
-        onPress={() => handleRelicPress(item.id)}
-        activeOpacity={0.9}
-      >
-        <Image 
-          source={{ uri: item.image }}
-          style={styles.carouselImage}
-        />
-        <LinearGradient
-          colors={['transparent', 'rgba(0,0,0,0.7)']}
-          style={styles.carouselGradient}
-        />
-        <View style={styles.carouselContent}>
-          <Text style={styles.carouselTitle}>{item.name}</Text>
-          <View style={styles.carouselMeta}>
-            <View style={styles.carouselDynastyBadge}>
-              <Text style={styles.carouselDynastyText}>{item.dynasty}</Text>
-            </View>
-            <Text style={styles.carouselDescription} numberOfLines={2}>
-              {item.description}
-            </Text>
-          </View>
-        </View>
-      </TouchableOpacity>
+      <View style={styles.emptyStateContainer}>
+        <Ionicons name="search-outline" size={48} color={COLORS.textSecondary} />
+        <Text style={styles.emptyStateTitle}>无匹配文物</Text>
+        <Text style={styles.emptyStateText}>
+          尝试调整搜索条件或分类筛选
+        </Text>
+        <TouchableOpacity 
+          style={styles.resetFiltersButton}
+          onPress={() => {
+            setSelectedCategory('all');
+            setSelectedDynasty('allDynasty');
+            setSearchText('');
+          }}
+        >
+          <Text style={styles.resetFiltersButtonText}>重置所有筛选</Text>
+        </TouchableOpacity>
+      </View>
     );
   };
+
+  // 获取分类对应的颜色
+  const getCategoryColor = (categoryId?: string) => {
+    if (!categoryId) return COLORS.primary;
+    
+    const category = categories.find(c => c.id === categoryId);
+    return category?.color || COLORS.primary;
+  };
   
+  // 加载更多数据
+  const loadMoreRelics = async () => {
+    // 在实际应用中，这里可以调用分页加载接口
+    console.log('加载更多文物数据');
+  };
+
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <SafeAreaView style={styles.container}>
       <StatusBar style="dark" />
       
-      {/* 标题和搜索栏 */}
+      {/* 头部搜索栏 */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>文物库</Text>
-        
+        <Text style={styles.screenTitle}>文物库</Text>
         <View style={styles.searchContainer}>
-          <Ionicons 
-            name="search" 
-            size={20} 
-            color={COLORS.textLight} 
-            style={styles.searchIcon}
-          />
+          <Ionicons name="search-outline" size={20} color={COLORS.textSecondary} style={styles.searchIcon} />
           <TextInput
             style={styles.searchInput}
-            placeholder="搜索文物名称、朝代或类别"
-            placeholderTextColor={COLORS.textLight}
+            placeholder="搜索文物名称、朝代..."
+            placeholderTextColor={COLORS.textSecondary}
             value={searchText}
             onChangeText={setSearchText}
           />
-          {searchText !== '' && (
+          {searchText.length > 0 && (
             <TouchableOpacity 
-              onPress={() => setSearchText('')}
               style={styles.clearButton}
+              onPress={() => setSearchText('')}
             >
-              <Ionicons name="close-circle" size={18} color={COLORS.textLight} />
+              <Ionicons name="close-circle" size={18} color={COLORS.textSecondary} />
             </TouchableOpacity>
           )}
         </View>
       </View>
       
-      <ScrollView 
+      <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
-        {/* 精选文物轮播 */}
-        <View style={styles.carouselContainer}>
-          <FlatList
-            ref={carouselRef}
-            data={featuredRelics}
-            renderItem={renderCarouselItem}
-            keyExtractor={item => item.id}
-            horizontal
-            pagingEnabled
-            showsHorizontalScrollIndicator={false}
-            onScroll={Animated.event(
-              [{ nativeEvent: { contentOffset: { x: scrollX } } }],
-              { useNativeDriver: false }
-            )}
-            onMomentumScrollEnd={handleMomentumScrollEnd}
-            scrollEventThrottle={16}
-          />
-          
-          {renderPagination()}
-        </View>
+        {/* 精选轮播 */}
+        {featuredRelics.length > 0 && (
+          <View style={styles.carouselContainer}>
+            <Text style={styles.sectionTitle}>精选文物</Text>
+            <View style={styles.carouselContent}>
+              <FlatList
+                ref={carouselRef}
+                data={featuredRelics}
+                horizontal
+                pagingEnabled
+                showsHorizontalScrollIndicator={false}
+                onScroll={Animated.event(
+                  [{ nativeEvent: { contentOffset: { x: scrollX } } }],
+                  { useNativeDriver: false }
+                )}
+                onMomentumScrollEnd={handleMomentumScrollEnd}
+                keyExtractor={(item) => item.id.toString()}
+                renderItem={({ item }) => (
+                  <TouchableOpacity
+                    activeOpacity={0.9}
+                    style={styles.carouselItem}
+                    onPress={() => handleRelicPress(item.id)}
+                  >
+                    <Image 
+                      source={{ uri: item.image }}
+                      style={styles.carouselImage}
+                      resizeMode="cover"
+                    />
+                    <LinearGradient
+                      colors={['transparent', 'rgba(0,0,0,0.7)']}
+                      style={styles.carouselGradient}
+                      start={{ x: 0, y: 0.6 }}
+                      end={{ x: 0, y: 1 }}
+                    >
+                      <Text style={styles.carouselTitle}>{item.name}</Text>
+                      <Text style={styles.carouselSubtitle}>{item.dynasty}</Text>
+                    </LinearGradient>
+                  </TouchableOpacity>
+                )}
+              />
+              {renderPagination()}
+            </View>
+          </View>
+        )}
         
         {/* 分类筛选 */}
         <View style={styles.filterSection}>
-          <Text style={styles.sectionTitle}>分类筛选</Text>
-          <FlatList
-            data={categories}
-            renderItem={renderCategoryItem}
-            keyExtractor={item => item.id}
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.categoriesContainer}
-          />
+          <Text style={styles.sectionTitle}>文物分类</Text>
+          <View style={styles.categoriesContainer}>
+            <FlatList
+              data={[{ id: 'all', name: '全部', icon: '📦', color: COLORS.primary }, ...categories.filter(cat => cat.name !== '全部' && cat.id !== 'all')]}
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              renderItem={renderCategoryItem}
+              keyExtractor={(item) => item.id.toString()}
+              contentContainerStyle={styles.categoriesList}
+            />
+          </View>
         </View>
         
         {/* 朝代筛选 */}
         <View style={styles.filterSection}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>朝代筛选</Text>
-            {selectedDynasty !== 'all' && (
-              <TouchableOpacity 
-                style={styles.clearFilterButton}
-                onPress={() => setSelectedDynasty('all')}
-              >
-                <Text style={styles.clearFilterText}>清除</Text>
-              </TouchableOpacity>
-            )}
+          <Text style={styles.sectionTitle}>朝代筛选</Text>
+          <View style={styles.dynastiesContainer}>
+            <FlatList
+              data={[{ id: 'allDynasty', name: '全部' }, ...dynasties.filter(dyn => dyn.name !== '全部' && dyn.id !== 'allDynasty')]}
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              renderItem={renderDynastyItem}
+              keyExtractor={(item) => item.id.toString()}
+              contentContainerStyle={styles.dynastiesList}
+            />
           </View>
-          
-          <FlatList
-            data={dynasties}
-            renderItem={renderDynastyItem}
-            keyExtractor={item => item.id}
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.dynastiesContainer}
-          />
         </View>
         
         {/* 文物列表 */}
         <View style={styles.relicsSection}>
-          <View style={styles.sectionHeader}>
+          <View style={styles.relicsSectionHeader}>
             <Text style={styles.sectionTitle}>文物列表</Text>
-            <Text style={styles.relicCount}>共 {filteredRelics.length} 件</Text>
+            <Text style={styles.relicCount}>
+              {filteredRelics.length} 件文物
+            </Text>
           </View>
           
           {filteredRelics.length > 0 ? (
             <View style={styles.relicsGrid}>
-              {filteredRelics.map(relic => (
-                <View key={relic.id} style={styles.relicCardWrapper}>
+              {filteredRelics.map((relic) => (
+                <View key={relic.id} style={styles.relicItemContainer}>
                   {renderRelicItem({ item: relic })}
                 </View>
               ))}
             </View>
           ) : (
-            <View style={styles.emptyContainer}>
-              <Ionicons name="alert-circle-outline" size={50} color={COLORS.textLight} />
-              <Text style={styles.emptyText}>未找到符合条件的文物</Text>
-              <TouchableOpacity 
-                style={styles.resetButton}
-                onPress={() => {
-                  setSearchText('');
-                  setSelectedCategory('all');
-                  setSelectedDynasty('all');
-                }}
-              >
-                <Text style={styles.resetButtonText}>重置筛选条件</Text>
-              </TouchableOpacity>
-            </View>
+            renderEmptyState()
           )}
         </View>
       </ScrollView>
@@ -534,53 +480,86 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.background,
   },
-  header: {
-    paddingHorizontal: SPACING.medium,
-    paddingTop: SPACING.medium,
-    paddingBottom: SPACING.small,
-    backgroundColor: COLORS.white,
-    ...SHADOWS.small,
+  scrollContent: {
+    paddingBottom: 30,
   },
-  headerTitle: {
-    fontSize: FONTS.size.large,
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: COLORS.background,
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+    backgroundColor: COLORS.background,
+  },
+  errorText: {
+    fontSize: 18,
+    color: COLORS.textSecondary,
+    textAlign: 'center',
+    marginTop: 20,
+    marginBottom: 20,
+  },
+  retryButton: {
+    backgroundColor: COLORS.primary,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: RADIUS.medium,
+  },
+  retryButtonText: {
+    color: COLORS.white,
+    fontSize: 16,
+    fontWeight: '500',
+  },
+  header: {
+    paddingHorizontal: 20,
+    paddingTop: 10,
+    paddingBottom: 15,
+  },
+  screenTitle: {
+    fontSize: 28,
     fontWeight: '700',
     color: COLORS.text,
-    marginBottom: SPACING.small,
+    marginBottom: 15,
   },
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: COLORS.backgroundLight,
+    backgroundColor: COLORS.card,
     borderRadius: RADIUS.medium,
-    paddingHorizontal: SPACING.small,
-    marginVertical: SPACING.small,
+    paddingHorizontal: 12,
+    height: 48,
   },
   searchIcon: {
-    marginRight: SPACING.small,
+    marginRight: 8,
   },
   searchInput: {
     flex: 1,
-    height: 44,
-    fontSize: FONTS.size.medium,
+    height: '100%',
+    fontSize: 16,
     color: COLORS.text,
   },
   clearButton: {
-    padding: 4,
+    padding: 5,
   },
-  scrollContent: {
-    paddingBottom: 30,
-  },
-  
-  // 轮播样式
   carouselContainer: {
-    height: 220,
-    width: '100%',
+    marginVertical: 15,
+    paddingHorizontal: 20,
+  },
+  carouselContent: {
+    height: 200,
+    marginTop: 10,
     position: 'relative',
   },
   carouselItem: {
-    width: width,
-    height: 220,
-    position: 'relative',
+    width: width - 40,
+    height: 200,
+    borderRadius: RADIUS.large,
+    overflow: 'hidden',
+    ...SHADOWS.medium,
   },
   carouselImage: {
     width: '100%',
@@ -592,232 +571,211 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     height: 100,
-  },
-  carouselContent: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    padding: SPACING.medium,
+    justifyContent: 'flex-end',
+    paddingHorizontal: 15,
+    paddingBottom: 15,
   },
   carouselTitle: {
-    fontSize: FONTS.size.large,
-    fontWeight: '700',
     color: COLORS.white,
-    marginBottom: 4,
-  },
-  carouselMeta: {
-    flexDirection: 'column',
-  },
-  carouselDynastyBadge: {
-    backgroundColor: 'rgba(255,255,255,0.3)',
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: RADIUS.small,
-    alignSelf: 'flex-start',
-    marginBottom: 4,
-  },
-  carouselDynastyText: {
-    fontSize: FONTS.size.small,
-    color: COLORS.white,
+    fontSize: 20,
     fontWeight: '600',
+    marginBottom: 4,
   },
-  carouselDescription: {
-    fontSize: FONTS.size.small,
-    color: 'rgba(255,255,255,0.8)',
+  carouselSubtitle: {
+    color: COLORS.white,
+    fontSize: 14,
+    opacity: 0.8,
   },
   paginationContainer: {
-    position: 'absolute',
-    bottom: 10,
     flexDirection: 'row',
-    width: '100%',
-    justifyContent: 'center',
-    alignItems: 'center',
+    position: 'absolute',
+    bottom: 15,
+    alignSelf: 'center',
   },
-  paginationDot: {
+  dot: {
     height: 8,
     borderRadius: 4,
     backgroundColor: COLORS.white,
     marginHorizontal: 4,
   },
-  
-  // 分类筛选
-  filterSection: {
-    marginHorizontal: SPACING.medium,
-    marginTop: SPACING.medium,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: SPACING.small,
-  },
   sectionTitle: {
-    fontSize: FONTS.size.medium,
-    fontWeight: '700',
+    fontSize: 18,
+    fontWeight: '600',
     color: COLORS.text,
+    marginBottom: 10,
   },
-  clearFilterButton: {
-    paddingVertical: 4,
-    paddingHorizontal: 8,
-    borderRadius: RADIUS.small,
-    backgroundColor: `${COLORS.primary}15`,
-  },
-  clearFilterText: {
-    fontSize: FONTS.size.small,
-    color: COLORS.primary,
+  filterSection: {
+    marginVertical: 10,
+    paddingHorizontal: 20,
   },
   categoriesContainer: {
-    paddingVertical: SPACING.small,
+    flexDirection: 'row',
+    marginTop: 5,
+  },
+  categoriesList: {
+    paddingRight: 20,
   },
   categoryItem: {
     alignItems: 'center',
-    marginRight: SPACING.medium,
-    width: 80,
+    marginRight: 16,
+    width: 70,
   },
   categoryItemSelected: {
-    // 选中状态不需要额外样式
+    opacity: 1,
   },
   categoryIcon: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: COLORS.backgroundLight,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: `${COLORS.primary}15`,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 8,
-    ...SHADOWS.small,
   },
   categoryIconSelected: {
-    backgroundColor: `${COLORS.primary}20`,
+    backgroundColor: COLORS.primary,
   },
   categoryIconText: {
-    fontSize: 22,
+    fontSize: 20,
   },
   categoryText: {
-    fontSize: FONTS.size.small,
+    fontSize: 14,
     color: COLORS.textSecondary,
     textAlign: 'center',
   },
   categoryTextSelected: {
     color: COLORS.primary,
-    fontWeight: '600',
+    fontWeight: '500',
   },
-  
-  // 朝代筛选
   dynastiesContainer: {
-    paddingVertical: SPACING.small,
+    marginTop: 5,
+    flexDirection: 'row',
+  },
+  dynastiesList: {
+    paddingRight: 20,
   },
   dynastyItem: {
-    paddingHorizontal: SPACING.medium,
-    paddingVertical: SPACING.small,
-    borderRadius: RADIUS.small,
-    backgroundColor: COLORS.backgroundLight,
-    marginRight: SPACING.small,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: RADIUS.large,
+    marginRight: 10,
+    backgroundColor: `${COLORS.primary}15`,
   },
   dynastyItemSelected: {
     backgroundColor: COLORS.primary,
   },
   dynastyText: {
-    fontSize: FONTS.size.small,
-    color: COLORS.text,
+    fontSize: 14,
+    color: COLORS.textSecondary,
   },
   dynastyTextSelected: {
     color: COLORS.white,
-    fontWeight: '600',
+    fontWeight: '500',
   },
-  
-  // 文物列表
   relicsSection: {
-    marginHorizontal: SPACING.medium,
-    marginTop: SPACING.medium,
+    marginTop: 20,
+    paddingHorizontal: 20,
+  },
+  relicsSectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 15,
   },
   relicCount: {
-    fontSize: FONTS.size.small,
-    color: COLORS.textLight,
+    fontSize: 14,
+    color: COLORS.textSecondary,
   },
   relicsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'space-between',
   },
-  relicCardWrapper: {
+  relicItemContainer: {
     width: '48%',
-    marginBottom: SPACING.medium,
+    marginBottom: 15,
   },
   relicCard: {
     borderRadius: RADIUS.medium,
-    backgroundColor: COLORS.white,
+    backgroundColor: COLORS.card,
     overflow: 'hidden',
     ...SHADOWS.small,
   },
   relicImageContainer: {
-    height: 140,
     position: 'relative',
   },
   relicImage: {
     width: '100%',
-    height: '100%',
+    height: 120,
   },
   relicCategoryIndicator: {
     position: 'absolute',
-    top: 10,
-    right: 10,
-    width: 10,
-    height: 10,
-    borderRadius: 5,
+    top: 8,
+    right: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: RADIUS.small,
+  },
+  relicCategoryText: {
+    fontSize: 10,
+    fontWeight: '500',
+    color: COLORS.white,
   },
   relicInfo: {
-    padding: SPACING.small,
+    padding: 10,
   },
   relicName: {
-    fontSize: FONTS.size.medium,
-    fontWeight: '600',
+    fontSize: 14,
+    fontWeight: '500',
     color: COLORS.text,
-    marginBottom: 4,
+    marginBottom: 5,
+    lineHeight: 20,
+    minHeight: 40,
   },
   relicMeta: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    flexWrap: 'wrap',
   },
-  dynastyBadge: {
-    backgroundColor: `${COLORS.primary}15`,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: RADIUS.small,
-    marginRight: 6,
+  relicDynasty: {
+    fontSize: 12,
+    color: COLORS.textSecondary,
   },
-  dynastyBadgeText: {
-    fontSize: FONTS.size.small,
-    color: COLORS.primary,
-  },
-  categoryLabel: {
-    fontSize: FONTS.size.small,
-    color: COLORS.textLight,
-  },
-  
-  // 空状态
-  emptyContainer: {
+  viewsContainer: {
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: SPACING.large,
   },
-  emptyText: {
-    fontSize: FONTS.size.medium,
-    color: COLORS.textLight,
-    marginTop: SPACING.medium,
-    marginBottom: SPACING.medium,
+  viewsText: {
+    fontSize: 11,
+    color: COLORS.textSecondary,
+    marginLeft: 3,
   },
-  resetButton: {
-    paddingHorizontal: SPACING.medium,
-    paddingVertical: SPACING.small,
-    backgroundColor: COLORS.primary,
-    borderRadius: RADIUS.small,
+  emptyStateContainer: {
+    alignItems: 'center',
+    paddingVertical: 40,
   },
-  resetButtonText: {
-    fontSize: FONTS.size.small,
-    color: COLORS.white,
+  emptyStateTitle: {
+    fontSize: 18,
     fontWeight: '600',
+    color: COLORS.text,
+    marginTop: 15,
+    marginBottom: 5,
+  },
+  emptyStateText: {
+    fontSize: 14,
+    color: COLORS.textSecondary,
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+  resetFiltersButton: {
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    backgroundColor: COLORS.primary,
+    borderRadius: RADIUS.medium,
+  },
+  resetFiltersButtonText: {
+    color: COLORS.white,
+    fontSize: 14,
+    fontWeight: '500',
   },
 }); 
