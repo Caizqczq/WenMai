@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { 
   View, Text, TouchableOpacity, StyleSheet, 
   Dimensions, Animated, Image, ActivityIndicator, ScrollView, Platform, StatusBar as RNStatusBar
@@ -18,6 +18,7 @@ import DialogChoice from '../../components/story/DialogChoice';
 import QuizDialog from '../../components/story/QuizDialog';
 import InteractionPointHelper from '../../components/story/InteractionPointHelper';
 import { getImageSource } from '../../utils/imageUtils';
+import CharacterAvatar from '../../components/story/CharacterAvatar';
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
@@ -41,6 +42,10 @@ const StoryExperienceScreen: React.FC<StoryExperienceProps> = (props) => {
     dialog: DialogType;
   } | null>(null);
   const [isLandscape, setIsLandscape] = useState(false);
+  const [hideHeader, setHideHeader] = useState(false);
+  
+  // 移除打字机效果相关状态
+  const scrollViewRef = useRef<ScrollView>(null);
   
   // 监听屏幕方向变化并设置全屏模式
   useEffect(() => {
@@ -262,6 +267,11 @@ const StoryExperienceScreen: React.FC<StoryExperienceProps> = (props) => {
     router.back();
   };
   
+  // 切换导航栏显示/隐藏
+  const toggleHeader = () => {
+    setHideHeader(!hideHeader);
+  };
+  
   // 渲染加载状态
   if (loading) {
     return (
@@ -331,11 +341,57 @@ const StoryExperienceScreen: React.FC<StoryExperienceProps> = (props) => {
           },
         ]}
       >
-        <View style={styles.dialogHeader}>
-          <Text style={styles.characterName}>{currentDialog.character}</Text>
-        </View>
-        <Text style={styles.dialogText}>{currentDialog.text}</Text>
+        {/* 对话框背景模糊效果 */}
+        <BlurView intensity={30} tint="dark" style={styles.blurBackground} />
         
+        {/* 角色头像和名称 */}
+        <View style={styles.characterInfo}>
+          <Animated.View
+            style={[
+              styles.avatarContainer,
+              {
+                transform: [
+                  {
+                    scale: dialogAnimValue.interpolate({
+                      inputRange: [0, 0.5, 1],
+                      outputRange: [0.5, 1.1, 1]
+                    })
+                  }
+                ]
+              }
+            ]}
+          >
+            <CharacterAvatar 
+              character={currentDialog?.character || ''} 
+              size={40} 
+              borderColor={
+                currentDialog?.character === '越王勾践' ? '#FFD700' :
+                currentDialog?.character === '讲述者' ? '#4A90E2' :
+                '#FFFFFF'
+              }
+            />
+          </Animated.View>
+          <View style={styles.characterNameContainer}>
+            <Text style={styles.characterName}>{currentDialog?.character}</Text>
+            {currentDialog?.emotion && (
+              <Text style={styles.characterEmotion}>({currentDialog.emotion})</Text>
+            )}
+          </View>
+        </View>
+        
+        {/* 对话内容 */}
+        <ScrollView 
+          ref={scrollViewRef}
+          style={styles.dialogTextScrollView}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.dialogTextContent}
+        >
+          <Text style={styles.dialogText}>
+            {currentDialog?.text}
+          </Text>
+        </ScrollView>
+        
+        {/* 导航按钮 */}
         <View style={styles.dialogNavButtons}>
           {currentDialogIndex > 0 && (
             <TouchableOpacity 
@@ -384,19 +440,21 @@ const StoryExperienceScreen: React.FC<StoryExperienceProps> = (props) => {
         resizeMode="cover"
       />
       
-      {/* 返回按钮和标题栏 */}
-      <SafeAreaView style={[
-        styles.header, 
-        isLandscape && { paddingTop: Platform.OS === 'ios' ? 10 : 8 }
-      ]}>
-        <TouchableOpacity 
-          style={styles.backButtonMain} 
-          onPress={handleBackPress}
-        >
-          <Ionicons name="arrow-back" size={20} color="#F5EFE0" />
-        </TouchableOpacity>
-        <Text style={styles.title} numberOfLines={1}>{story?.title || '故事体验'}</Text>
-      </SafeAreaView>
+      {/* 返回按钮和标题栏 - 可隐藏 */}
+      {!hideHeader && (
+        <SafeAreaView style={[
+          styles.header, 
+          isLandscape && { paddingTop: Platform.OS === 'ios' ? 10 : 8 }
+        ]}>
+          <TouchableOpacity 
+            style={styles.backButtonMain} 
+            onPress={handleBackPress}
+          >
+            <Ionicons name="arrow-back" size={20} color="#F5EFE0" />
+          </TouchableOpacity>
+          <Text style={styles.title} numberOfLines={1}>{story?.title || '故事体验'}</Text>
+        </SafeAreaView>
+      )}
       
       {/* 主要对话框 */}
       {!showInteractionPoints && !specialDialog && renderDialog()}
@@ -425,6 +483,21 @@ const StoryExperienceScreen: React.FC<StoryExperienceProps> = (props) => {
       {/* 交互点 */}
       {showInteractionPoints && !specialDialog && renderInteractionPoints()}
       
+      {/* 显示/隐藏导航栏按钮 */}
+      <TouchableOpacity 
+        style={[
+          styles.toggleHeaderButton,
+          hideHeader && { top: 10 } // 当导航栏隐藏时调整位置
+        ]} 
+        onPress={toggleHeader}
+      >
+        <Ionicons 
+          name={hideHeader ? "chevron-down" : "chevron-up"} 
+          size={20} 
+          color="#F5EFE0" 
+        />
+      </TouchableOpacity>
+      
       {/* 确保横屏模式下状态栏隐藏 */}
       <StatusBar style="light" hidden={true} />
     </View>
@@ -449,91 +522,127 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 8, // 减少内边距
+    padding: 8,
     position: 'absolute',
     top: 0,
     left: 0,
     right: 0,
     zIndex: 10,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)', // 添加背景色，提高可见度
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
   },
   backButtonMain: {
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    padding: 6, // 减小按钮尺寸
+    padding: 6,
     borderRadius: 16,
-    marginRight: 8, // 添加间距
+    marginRight: 8,
   },
   title: {
     color: '#F5EFE0',
-    fontSize: 13, // 进一步减小字体大小
+    fontSize: 13,
     fontWeight: '600',
-    marginLeft: 4, // 减少左边距
     textShadowColor: 'rgba(0, 0, 0, 0.75)',
     textShadowOffset: { width: 1, height: 1 },
     textShadowRadius: 3,
-    maxWidth: '80%', // 限制宽度以防止超出屏幕
+    flex: 1, // 让标题占据中间空间
   },
   dialogContainer: {
     position: 'absolute',
     bottom: 20,
     left: 20,
     right: 20,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
-    borderRadius: 10,
-    padding: 15,
-    minHeight: 150,
-    maxHeight: '40%',
+    borderRadius: 12,
+    padding: 0, 
+    minHeight: 150, // 再减小最小高度
+    maxHeight: '40%', 
+    overflow: 'hidden',
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 5, // 添加阴影效果
   },
   landscapeDialogContainer: {
-    width: '55%',
-    left: '22.5%',
-    right: '22.5%',
-    minHeight: 120, // 横屏模式下对话框可以小一些
-    maxHeight: '35%', // 横屏模式下限制最大高度
-    padding: 12, // 内边距也可以减少一点
-    bottom: Platform.OS === 'ios' ? 50 : 40, // 根据平台增加更多底部安全距离
+    width: '50%', // 再减小宽度
+    left: '25%',
+    right: '25%',
+    minHeight: 130, // 再减小最小高度
+    bottom: Platform.OS === 'ios' ? 50 : 40,
   },
-  dialogHeader: {
-    marginBottom: 8,
+  blurBackground: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)', // 增加不透明度
+  },
+  characterInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 6, // 减小内边距
+    paddingLeft: 10,
+    paddingRight: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.15)',
+  },
+  characterNameContainer: {
+    marginLeft: 8,
   },
   characterName: {
-    fontSize: 18,
+    fontSize: 16, // 减小字体大小
     fontWeight: 'bold',
     color: '#FFD700',
   },
+  characterEmotion: {
+    fontSize: 12, // 减小字体大小
+    color: '#CCCCCC',
+    marginTop: 1, // 减小间距
+  },
+  dialogTextScrollView: {
+    maxHeight: 100, // 减小文本区域高度
+    padding: 12,
+    paddingTop: 8,
+  },
   dialogText: {
-    fontSize: 16,
+    fontSize: 15,
     color: '#FFFFFF',
-    lineHeight: 24,
-    marginBottom: 15,
+    lineHeight: 22,
+    textShadowColor: 'rgba(0, 0, 0, 0.5)',
+    textShadowOffset: { width: 0.5, height: 0.5 },
+    textShadowRadius: 1,
+    letterSpacing: 0.3, // 增加字距
+  },
+  dialogTextContent: {
+    paddingBottom: 5,
   },
   dialogNavButtons: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: 8,
-    paddingBottom: Platform.OS === 'ios' ? 10 : 5, // 增加底部按钮填充
+    padding: 6, // 减小内边距
+    paddingLeft: 10,
+    paddingRight: 10,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255, 255, 255, 0.15)',
+    paddingBottom: Platform.OS === 'ios' ? 8 : 5,
   },
   nextButton: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#8B4513',
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 16,
+    paddingVertical: 6, // 减小垂直内边距
+    paddingHorizontal: 12, // 减小水平内边距
+    borderRadius: 16, // 减小圆角
     alignSelf: 'flex-end',
   },
   prevButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#3a5199', // 使用不同颜色，让按钮更明显
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 16,
+    backgroundColor: '#3a5199',
+    paddingVertical: 6, // 减小垂直内边距
+    paddingHorizontal: 12, // 减小水平内边距
+    borderRadius: 16, // 减小圆角
   },
   navButtonText: {
     color: '#FFFFFF',
-    fontSize: 14,
-    marginHorizontal: 4,
+    fontSize: 13, // 减小字体大小
+    marginHorizontal: 3, // 减小间距
+    fontWeight: '500',
   },
   loadingContainer: {
     ...StyleSheet.absoluteFillObject,
@@ -557,6 +666,21 @@ const styles = StyleSheet.create({
     color: '#FFF',
     fontSize: 16,
     fontWeight: 'bold',
+  },
+  avatarContainer: {
+    // 这个容器用于头像的动画效果
+  },
+  toggleHeaderButton: {
+    position: 'absolute',
+    top: 40, // 位于导航栏下方
+    right: 15,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 20,
   },
 });
 
