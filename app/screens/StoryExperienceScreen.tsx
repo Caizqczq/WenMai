@@ -1,19 +1,25 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { 
   View, Text, TouchableOpacity, StyleSheet, 
-  Dimensions, Animated, Image, ActivityIndicator 
+  Dimensions, Animated, Image, ActivityIndicator, ScrollView, Platform, StatusBar as RNStatusBar
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
+import * as ScreenOrientation from 'expo-screen-orientation';
+import * as NavigationBar from 'expo-navigation-bar';
 import { storyService } from '../../data/services';
 import { Story, Scene as SceneType, Dialog as DialogType, InteractionPoint } from '../../data/types';
 import { COLORS } from '../../constants/Colors';
 import LoadingIndicator from '../../components/ui/LoadingIndicator';
+import DialogChoice from '../../components/story/DialogChoice';
+import QuizDialog from '../../components/story/QuizDialog';
+import InteractionPointHelper from '../../components/story/InteractionPointHelper';
+import { getImageSource } from '../../utils/imageUtils';
 
-const { width, height } = Dimensions.get('window');
+const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
 interface StoryExperienceProps {
   id?: string | string[];
@@ -29,6 +35,58 @@ const StoryExperienceScreen: React.FC<StoryExperienceProps> = (props) => {
   const [dialogAnimValue] = useState(new Animated.Value(0));
   const [showInteractionPoints, setShowInteractionPoints] = useState(false);
   const [dialogHistory, setDialogHistory] = useState<DialogType[]>([]);
+  const [specialDialog, setSpecialDialog] = useState<{
+    id: string;
+    type: 'choice' | 'quiz';
+    dialog: DialogType;
+  } | null>(null);
+  const [isLandscape, setIsLandscape] = useState(false);
+  
+  // 监听屏幕方向变化并设置全屏模式
+  useEffect(() => {
+    // 设置屏幕为横屏模式
+    const lockOrientationAndFullscreen = async () => {
+      try {
+        // 锁定横屏方向
+        await ScreenOrientation.lockAsync(
+          ScreenOrientation.OrientationLock.LANDSCAPE
+        );
+        setIsLandscape(true);
+        
+        // 根据平台设置全屏模式
+        if (Platform.OS === 'android') {
+          RNStatusBar.setHidden(true);
+          // 隐藏Android导航栏
+          await NavigationBar.setVisibilityAsync("hidden");
+          await NavigationBar.setBehaviorAsync('overlay-swipe');
+        } else if (Platform.OS === 'ios') {
+          // iOS设置状态栏隐藏
+          RNStatusBar.setHidden(true, 'slide');
+        }
+      } catch (error) {
+        console.error('设置横屏模式失败:', error);
+      }
+    };
+    
+    lockOrientationAndFullscreen();
+    
+    const subscription = Dimensions.addEventListener('change', ({ window }) => {
+      setIsLandscape(window.width > window.height);
+    });
+    
+    return () => {
+      subscription.remove();
+      // 组件卸载时解锁屏幕方向和退出全屏
+      ScreenOrientation.unlockAsync();
+      if (Platform.OS === 'android') {
+        RNStatusBar.setHidden(false);
+        // 恢复Android导航栏
+        NavigationBar.setVisibilityAsync("visible");
+      } else if (Platform.OS === 'ios') {
+        RNStatusBar.setHidden(false);
+      }
+    };
+  }, []);
   
   // 加载故事数据
   useEffect(() => {
@@ -119,6 +177,14 @@ const StoryExperienceScreen: React.FC<StoryExperienceProps> = (props) => {
     }
   };
   
+  // 处理返回上一条对话
+  const handlePreviousDialog = () => {
+    if (currentDialogIndex > 0) {
+      dialogAnimValue.setValue(0);
+      setCurrentDialogIndex(currentDialogIndex - 1);
+    }
+  };
+  
   // 处理交互点击
   const handleInteractionPoint = (point: InteractionPoint) => {
     if (point.nextScene) {
@@ -127,10 +193,73 @@ const StoryExperienceScreen: React.FC<StoryExperienceProps> = (props) => {
       setCurrentDialogIndex(0);
       setShowInteractionPoints(false);
       dialogAnimValue.setValue(0);
+      // 清除专用对话状态
+      setSpecialDialog(null);
     } else if (point.triggerDialog) {
-      // TODO: 触发特殊对话
+      // 处理特殊对话类型
       console.log('触发特殊对话:', point.triggerDialog);
+      handleSpecialDialog(point.triggerDialog);
     }
+  };
+  
+  // 处理特殊对话
+  const handleSpecialDialog = (dialogId: string) => {
+    const currentScene = getCurrentScene();
+    if (!currentScene) return;
+    
+    console.log('尝试查找特殊对话:', dialogId);
+    console.log('当前场景对话列表:', currentScene.dialogs);
+    
+    // 查找特殊对话
+    const dialog = currentScene.dialogs.find(d => d.id === dialogId);
+    if (!dialog) {
+      console.error('未找到对话:', dialogId);
+      return;
+    }
+    
+    console.log('找到对话:', dialog);
+    
+    // 判断对话类型
+    if (dialog.choices) {
+      console.log('检测到选择题对话，choices:', dialog.choices);
+      setSpecialDialog({
+        id: dialogId,
+        type: 'choice',
+        dialog
+      });
+    } else if (dialog.quiz) {
+      console.log('检测到问答题对话，quiz:', dialog.quiz);
+      setSpecialDialog({
+        id: dialogId,
+        type: 'quiz',
+        dialog
+      });
+    } else {
+      console.error('未知的特殊对话类型:', dialogId, dialog);
+    }
+  };
+  
+  // 处理特殊对话完成
+  const handleSpecialDialogComplete = () => {
+    setSpecialDialog(null);
+    // 如果需要，可以在这里更新游戏状态或进度
+  };
+  
+  // 修改返回按钮处理函数，确保返回前解锁屏幕方向
+  const handleBackPress = async () => {
+    try {
+      await ScreenOrientation.unlockAsync();
+      if (Platform.OS === 'android') {
+        RNStatusBar.setHidden(false);
+        // 恢复Android导航栏
+        await NavigationBar.setVisibilityAsync("visible");
+      } else if (Platform.OS === 'ios') {
+        RNStatusBar.setHidden(false);
+      }
+    } catch (error) {
+      console.error('解锁屏幕方向失败:', error);
+    }
+    router.back();
   };
   
   // 渲染加载状态
@@ -153,8 +282,8 @@ const StoryExperienceScreen: React.FC<StoryExperienceProps> = (props) => {
         <Ionicons name="alert-circle-outline" size={60} color={COLORS.error} />
         <Text style={styles.errorText}>{error || '故事加载失败'}</Text>
         <TouchableOpacity 
-          style={styles.backButton}
-          onPress={() => router.back()}
+          style={styles.backButtonMain}
+          onPress={handleBackPress}
         >
           <Text style={styles.backButtonText}>返回</Text>
         </TouchableOpacity>
@@ -170,8 +299,8 @@ const StoryExperienceScreen: React.FC<StoryExperienceProps> = (props) => {
       <SafeAreaView style={styles.errorContainer}>
         <Text style={styles.errorText}>故事场景数据错误</Text>
         <TouchableOpacity 
-          style={styles.backButton}
-          onPress={() => router.back()}
+          style={styles.backButtonMain}
+          onPress={handleBackPress}
         >
           <Text style={styles.backButtonText}>返回</Text>
         </TouchableOpacity>
@@ -179,7 +308,7 @@ const StoryExperienceScreen: React.FC<StoryExperienceProps> = (props) => {
     );
   }
   
-  // 渲染对话框
+  // 渲染对话框 - 调整为横屏布局
   const renderDialog = () => {
     const dialogOpacity = dialogAnimValue.interpolate({
       inputRange: [0, 1],
@@ -195,6 +324,7 @@ const StoryExperienceScreen: React.FC<StoryExperienceProps> = (props) => {
       <Animated.View
         style={[
           styles.dialogContainer,
+          isLandscape && styles.landscapeDialogContainer,
           {
             opacity: dialogOpacity,
             transform: [{ translateY: dialogTranslateY }],
@@ -205,132 +335,109 @@ const StoryExperienceScreen: React.FC<StoryExperienceProps> = (props) => {
           <Text style={styles.characterName}>{currentDialog.character}</Text>
         </View>
         <Text style={styles.dialogText}>{currentDialog.text}</Text>
-        <TouchableOpacity 
-          style={styles.nextButton}
-          onPress={handleNextDialog}
-        >
-          <Text style={styles.nextButtonText}>继续</Text>
-        </TouchableOpacity>
+        
+        <View style={styles.dialogNavButtons}>
+          {currentDialogIndex > 0 && (
+            <TouchableOpacity 
+              style={styles.prevButton}
+              onPress={handlePreviousDialog}
+            >
+              <Ionicons name="chevron-back" size={16} color="#FFFFFF" />
+              <Text style={styles.navButtonText}>上一条</Text>
+            </TouchableOpacity>
+          )}
+          
+          <TouchableOpacity 
+            style={styles.nextButton}
+            onPress={handleNextDialog}
+          >
+            <Text style={styles.navButtonText}>继续</Text>
+            <Ionicons name="chevron-forward" size={16} color="#FFFFFF" />
+          </TouchableOpacity>
+        </View>
       </Animated.View>
     );
   };
   
-  // 渲染交互点
+  // 渲染交互点 - 使用辅助组件
   const renderInteractionPoints = () => {
     if (!showInteractionPoints || !currentScene.interactionPoints) {
       return null;
     }
     
-    return currentScene.interactionPoints.map((point) => (
-            <TouchableOpacity
-              key={point.id}
-        style={[
-          styles.interactionPoint,
-          {
-            left: point.position.x,
-            top: point.position.y,
-          },
-        ]}
-        onPress={() => handleInteractionPoint(point)}
-      >
-        <View style={styles.interactionPointCircle}>
-          <Ionicons 
-            name={
-              point.type === 'item' 
-                ? 'search-circle' 
-                : point.type === 'character' 
-                  ? 'person-circle'
-                  : 'arrow-forward-circle'
-            } 
-            size={32} 
-            color="#FFF" 
-          />
-        </View>
-        <View style={styles.interactionHint}>
-          <Text style={styles.interactionHintText}>{point.hintText}</Text>
-        </View>
-            </TouchableOpacity>
+    return currentScene.interactionPoints.map((point, index) => (
+      <InteractionPointHelper
+        key={`point-${index}`}
+        point={point}
+        onPress={handleInteractionPoint}
+        isLandscape={isLandscape}
+      />
     ));
   };
   
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: currentScene.backgroundColor }]}>
-      <StatusBar style="light" />
-          
-          {/* 返回按钮 */}
-          <TouchableOpacity 
-        style={styles.backButtonTop}
-            onPress={() => router.back()}
-          >
-        <Ionicons name="arrow-back" size={24} color="#FFF" />
-          </TouchableOpacity>
-          
-      {/* 场景图片 */}
-      <View style={styles.sceneImageContainer}>
-        {currentScene.backgroundImage && (
-          <Image 
-            source={{ uri: currentScene.backgroundImage }}
-            style={styles.sceneBackgroundImage}
-            resizeMode="cover"
-          />
-        )}
-      </View>
+    <View style={styles.container}>
+      {/* 背景图 */}
+      <Image
+        source={getImageSource(currentScene?.backgroundImage)}
+        style={styles.backgroundImage}
+        resizeMode="cover"
+      />
+      
+      {/* 返回按钮和标题栏 */}
+      <SafeAreaView style={[
+        styles.header, 
+        isLandscape && { paddingTop: Platform.OS === 'ios' ? 10 : 8 }
+      ]}>
+        <TouchableOpacity 
+          style={styles.backButtonMain} 
+          onPress={handleBackPress}
+        >
+          <Ionicons name="arrow-back" size={20} color="#F5EFE0" />
+        </TouchableOpacity>
+        <Text style={styles.title} numberOfLines={1}>{story?.title || '故事体验'}</Text>
+      </SafeAreaView>
+      
+      {/* 主要对话框 */}
+      {!showInteractionPoints && !specialDialog && renderDialog()}
+      
+      {/* 特殊对话框：选择题 */}
+      {specialDialog && specialDialog.type === 'choice' && specialDialog.dialog.choices && (
+        <DialogChoice
+          question={specialDialog.dialog.text}
+          character={specialDialog.dialog.character}
+          choices={specialDialog.dialog.choices}
+          onComplete={handleSpecialDialogComplete}
+        />
+      )}
+      
+      {/* 特殊对话框：问答题 */}
+      {specialDialog && specialDialog.type === 'quiz' && specialDialog.dialog.quiz && (
+        <QuizDialog
+          question={specialDialog.dialog.text}
+          character={specialDialog.dialog.character}
+          options={specialDialog.dialog.quiz.options}
+          explanation={specialDialog.dialog.quiz.explanation}
+          onComplete={handleSpecialDialogComplete}
+        />
+      )}
       
       {/* 交互点 */}
-      {renderInteractionPoints()}
+      {showInteractionPoints && !specialDialog && renderInteractionPoints()}
       
-      {/* 对话框 */}
-      {renderDialog()}
-    </SafeAreaView>
+      {/* 确保横屏模式下状态栏隐藏 */}
+      <StatusBar style="light" hidden={true} />
+    </View>
   );
 };
 
+// 调整样式以适应横屏模式
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: '#000', // 默认背景颜色
   },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: COLORS.background,
-  },
-  errorContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#000',
-    padding: 20,
-  },
-  errorText: {
-    fontSize: 18,
-    color: '#F5EFE0',
-    textAlign: 'center',
-    marginVertical: 20,
-  },
-  backButton: {
-    backgroundColor: COLORS.primary,
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 8,
-  },
-  backButtonText: {
-    color: '#FFF',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  backButtonTop: {
-    position: 'absolute',
-    top: 10,
-    left: 10,
-    zIndex: 10,
-    padding: 8,
-    borderRadius: 20,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-  },
-  sceneImageContainer: {
+  backgroundImage: {
     position: 'absolute',
     top: 0,
     left: 0,
@@ -339,72 +446,117 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
   },
-  sceneBackgroundImage: {
-    flex: 1,
-    width: '100%',
-    height: '100%',
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 8, // 减少内边距
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 10,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)', // 添加背景色，提高可见度
+  },
+  backButtonMain: {
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    padding: 6, // 减小按钮尺寸
+    borderRadius: 16,
+    marginRight: 8, // 添加间距
+  },
+  title: {
+    color: '#F5EFE0',
+    fontSize: 13, // 进一步减小字体大小
+    fontWeight: '600',
+    marginLeft: 4, // 减少左边距
+    textShadowColor: 'rgba(0, 0, 0, 0.75)',
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 3,
+    maxWidth: '80%', // 限制宽度以防止超出屏幕
   },
   dialogContainer: {
     position: 'absolute',
     bottom: 20,
     left: 20,
     right: 20,
-    backgroundColor: 'rgba(0,0,0,0.75)',
-    borderRadius: 12,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    borderRadius: 10,
     padding: 15,
-    minHeight: 120,
+    minHeight: 150,
+    maxHeight: '40%',
+  },
+  landscapeDialogContainer: {
+    width: '55%',
+    left: '22.5%',
+    right: '22.5%',
+    minHeight: 120, // 横屏模式下对话框可以小一些
+    maxHeight: '35%', // 横屏模式下限制最大高度
+    padding: 12, // 内边距也可以减少一点
+    bottom: Platform.OS === 'ios' ? 50 : 40, // 根据平台增加更多底部安全距离
   },
   dialogHeader: {
     marginBottom: 8,
   },
   characterName: {
-    color: '#FFD700',
     fontSize: 18,
     fontWeight: 'bold',
+    color: '#FFD700',
   },
   dialogText: {
-    color: '#FFF',
     fontSize: 16,
+    color: '#FFFFFF',
     lineHeight: 24,
+    marginBottom: 15,
+  },
+  dialogNavButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 8,
+    paddingBottom: Platform.OS === 'ios' ? 10 : 5, // 增加底部按钮填充
   },
   nextButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#8B4513',
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 16,
     alignSelf: 'flex-end',
-    paddingVertical: 8,
-    paddingHorizontal: 15,
-    marginTop: 10,
   },
-  nextButtonText: {
-    color: '#FFD700',
-    fontSize: 16,
-    fontWeight: 'bold',
+  prevButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#3a5199', // 使用不同颜色，让按钮更明显
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 16,
   },
-  interactionPoint: {
-    position: 'absolute',
-    width: 40,
-    height: 40,
-    zIndex: 5,
+  navButtonText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    marginHorizontal: 4,
   },
-  interactionPointCircle: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255,215,0,0.6)',
+  loadingContainer: {
+    ...StyleSheet.absoluteFillObject,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
   },
-  interactionHint: {
-    position: 'absolute',
-    top: -30,
-    left: 0,
-    backgroundColor: 'rgba(0,0,0,0.7)',
-    borderRadius: 8,
-    padding: 5,
-    minWidth: 80,
+  errorContainer: {
+    ...StyleSheet.absoluteFillObject,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
   },
-  interactionHintText: {
-    color: '#FFF',
-    fontSize: 12,
+  errorText: {
+    fontSize: 18,
+    color: '#F5EFE0',
+    marginVertical: 20,
     textAlign: 'center',
+  },
+  backButtonText: {
+    color: '#FFF',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
 });
 

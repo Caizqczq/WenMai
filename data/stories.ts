@@ -4,25 +4,26 @@ import { Story, StoryChapter, StoryInteraction, Scene, Dialog, InteractionPoint 
 export const stories: Story[] = [
   {
     id: '1',
-    title: '越王勾践剑的秘密',
+    title: '越王勾践剑的传奇',
     relicId: '105',
-    summary: '公元前496年，越国国君勾践被吴王夫差打败，被迫臣服于吴国。这是一个卧薪尝胆、韬光养晦、最终复国雪耻的传奇故事。',
-    coverImage: 'https://picsum.photos/id/65/800/600',
-    duration: 15,
-    tags: ['战国', '青铜器', '复仇'],
+    summary: '这是一把剑的故事，更是一个王的故事。它见证了一个国家的兴衰荣辱，也见证了一位君主的坚韧与荣耀。',
+    coverImage: '/images/goujian_sword_cover.jpg',
+    duration: 20,
+    tags: ['春秋', '青铜器', '复仇', '卧薪尝胆'],
+    supportsLandscape: true,
     chapters: [
       {
         id: '1-1',
-        title: '败亡之殇',
-        content: '公元前496年，越国与吴国在夫椒（今浙江省嘉兴）进行了一场激烈的战争。越国战败，国君勾践被迫与五千越军降服于吴王夫差，被带往吴国都城（今江苏苏州）。',
-        imageUrl: 'https://picsum.photos/id/1065/800/600',
+        title: '剑与王',
+        content: '公元前496年，越国的王位上，迎来了一位新的君主——勾践。这把青铜铸就的宝剑，便被佩在了他的腰间。从此，它与勾践的命运紧紧相连，一同踏上了波澜壮阔的征程。',
+        imageUrl: '/images/goujian_coronation.jpg',
         interactions: [
           {
             id: '1-1-1',
             type: 'dialog',
             data: {
               character: '越王勾践',
-              text: '今日之耻，他日必报！我越国虽败，不死！',
+              text: '今日我继承王位，此剑随我征战四方，必将带领越国走向强盛！',
               emotion: 'determined'
             }
           }
@@ -30,37 +31,80 @@ export const stories: Story[] = [
       },
       {
         id: '1-2',
-        title: '卧薪尝胆',
-        content: '在吴国，勾践被迫忍辱负重，为吴王牵马、尝粪以证明其忠诚。他卧薪尝胆，日夜不忘国耻，暗中积蓄力量。与此同时，他命令能工巧匠铸造了一把锋利无比的宝剑，以寄托复国雪耻的决心。',
-        imageUrl: 'https://picsum.photos/id/1066/800/600',
+        title: '夫椒之战',
+        content: '公元前494年，夫椒之战的烽火燃起。吴王夫差，为了报杀父之仇，率大军气势汹汹地向越国压来。战场上，两军对峙，战鼓震天。然而，勾践却在谋士的劝谏声中，选择了贸然出击。结果，越军大败，曾经威风凛凛的越军，如今只剩下了五千残兵败将，狼狈地逃到了会稽山。在这场惨败中，越王勾践剑也随勾践一同经历了生死劫难，它见证了越国的耻辱，也见证了勾践的无奈与痛苦。',
+        imageUrl: '/images/fuqiao_battle.jpg',
         interactions: [
           {
             id: '1-2-1',
             type: 'dialog',
             data: {
-              character: '勾践',
-              text: '（尝一口苦胆）苦...但比国亡之痛更苦的是什么？是无法复国的耻辱！',
-              emotion: 'suffering'
+              character: '谋士',
+              text: '大王，吴军势大，我军应当避其锋芒，不可贸然出击！',
+              emotion: 'worried'
             }
           },
           {
             id: '1-2-2',
+            type: 'dialog',
+            data: {
+              character: '越王勾践',
+              text: '不！越国勇士无所畏惧！给我冲！',
+              emotion: 'fierce'
+            }
+          },
+          {
+            id: '1-2-3',
+            type: 'animation',
+            data: {
+              animationType: 'battle',
+              duration: 5
+            }
+          }
+        ]
+      },
+      {
+        id: '1-3',
+        title: '臣服吴国',
+        content: '夫椒之战后，勾践陷入了绝境。为了保全性命，他做出了一个艰难的决定——向夫差献上美女、财宝，并自请为吴王的臣仆。在吴国的那些日子里，勾践受尽屈辱。他为夫差驾车，为夫差养马，忍受着吴国臣民的白眼与嘲讽。而那把越王勾践剑，也随他一同经历了这段屈辱的岁月。它静静地躺在勾践的腰间，仿佛在默默诉说着主人的不甘与屈辱，又仿佛在等待着主人东山再起的那一天。',
+        imageUrl: '/images/goujian_servant.jpg',
+        interactions: [
+          {
+            id: '1-3-1',
+            type: 'dialog',
+            data: {
+              character: '吴王夫差',
+              text: '勾践，你今日给我牵马，明日为我驾车！',
+              emotion: 'arrogant'
+            }
+          },
+          {
+            id: '1-3-2',
+            type: 'dialog',
+            data: {
+              character: '越王勾践',
+              text: '（内心）忍，必须忍！越国不灭，我志不死！',
+              emotion: 'suffering'
+            }
+          },
+          {
+            id: '1-3-3',
             type: 'choice',
             data: {
-              question: '勾践应该怎么做？',
+              question: '勾践在面对屈辱时，他的内心想法是？',
               options: [
                 {
-                  text: '趁夜色暗杀吴王夫差',
-                  outcome: '这是一个危险且不明智的选择。即使成功，越国也难以对抗整个吴国。'
+                  text: '接受命运，认命做奴仆',
+                  outcome: '勾践绝不会放弃越国的希望和复国的梦想。'
                 },
                 {
-                  text: '忍辱负重，等待机会',
-                  outcome: '这是勾践最终选择的道路，他决定忍受屈辱，等待复国的时机。',
+                  text: '暗中积蓄力量，等待复仇时机',
+                  outcome: '勾践表面恭顺，内心却从未放弃复国雪耻的决心。',
                   isCorrect: true
                 },
                 {
-                  text: '向周天子求援',
-                  outcome: '在当时，周天子已无实权，无法给予有力援助。'
+                  text: '寻机刺杀吴王夫差',
+                  outcome: '勾践深知此时刺杀夫差只会导致越国彻底灭亡，他需要的是更长远的谋划。'
                 }
               ]
             }
@@ -68,13 +112,39 @@ export const stories: Story[] = [
         ]
       },
       {
-        id: '1-3',
-        title: '复国雪耻',
-        content: '经过多年的忍耐与筹划，勾践最终被允许返回越国。他励精图治，发展农业，训练军队，并聘请贤臣范蠡和文种辅佐。二十年后，越国强大起来，趁吴国内乱之际发动攻击，最终灭掉了吴国，完成了复仇。',
-        imageUrl: 'https://picsum.photos/id/1067/800/600',
+        id: '1-4',
+        title: '卧薪尝胆',
+        content: '历尽侮辱，勾践终于被释放回国。回国后的勾践，没有忘记会稽之耻，他把国都迁到了平原地区的山阴大城。在那里，他忧心苦思，把苦胆挂到了座位上，无论是坐卧还是吃饭，都要尝尝苦胆的滋味，以此提醒自己不忘曾经的耻辱。而越王勾践剑，也始终伴随着他，见证了他卧薪尝胆、发奋图强的坚韧岁月。勾践励精图治，发展生产，整军备战，越国在他的治理下，逐渐强大起来。',
+        imageUrl: '/images/goujian_gall.jpg',
         interactions: [
           {
-            id: '1-3-1',
+            id: '1-4-1',
+            type: 'dialog',
+            data: {
+              character: '越王勾践',
+              text: '（尝一口苦胆）这苦涩的滋味，提醒我不忘国耻！只有国家强大，才能洗刷耻辱！',
+              emotion: 'determined'
+            }
+          },
+          {
+            id: '1-4-2',
+            type: 'dialog',
+            data: {
+              character: '范蠡',
+              text: '大王，臣已安排能工巧匠打造更多宝剑，训练精锐部队。十年之内，越国必将强盛！',
+              emotion: 'confident'
+            }
+          }
+        ]
+      },
+      {
+        id: '1-5',
+        title: '复仇之战',
+        content: '经过多年的努力，越国终于迎来了复仇之时。公元前473年，勾践率军攻打吴国，大败吴军，成为了春秋时期最后一位霸主。在这场复仇之战中，越王勾践剑随勾践见证了越国的复兴，也见证了吴国的灭亡。这把剑，仿佛是勾践的守护神，又仿佛是越国的象征，它见证了越国从屈辱到荣耀的全过程。',
+        imageUrl: '/images/goujian_victory.jpg',
+        interactions: [
+          {
+            id: '1-5-1',
             type: 'animation',
             data: {
               animationType: 'battle',
@@ -82,34 +152,72 @@ export const stories: Story[] = [
             }
           },
           {
-            id: '1-3-2',
+            id: '1-5-2',
             type: 'dialog',
             data: {
-              character: '勾践',
-              text: '二十年卧薪尝胆，今日终得报仇！吴国灭亡，越国兴盛！',
+              character: '越王勾践',
+              text: '二十年的等待，终于等到了这一刻！吴国灭亡，越国崛起！',
               emotion: 'triumphant'
             }
           }
         ]
       },
       {
-        id: '1-4',
-        title: '宝剑出世',
-        content: '勾践命人铸造的宝剑传世两千多年，被誉为"天下第一剑"。这把剑在1965年于湖北江陵一座古墓中被考古学家发现，它历经两千年仍然锋利无比，成为了中国古代冶炼技术的杰出代表。',
-        imageUrl: 'https://picsum.photos/id/1068/800/600',
+        id: '1-6',
+        title: '剑出土',
+        content: '时间来到了1965年的冬天，在湖北省荆州市附近的望山一号楚国贵族墓的挖掘现场。考古人员在墓主人身体的左手边，意外地发现了一柄装在黑色漆木箱鞘内的名贵青铜剑。当考古人员小心翼翼地拔剑出鞘时，所有人都被眼前的一幕惊呆了。寒光耀目，毫无锈蚀，刃薄锋利，这把剑仿佛刚刚铸成，却已经跨越了两千多年的时光。剑全长55.6厘米，其中剑身长45.6厘米，剑格宽5厘米。剑身满饰黑色菱形几何暗花纹，剑格正面和反面还分别用蓝色琉璃和绿松石镶嵌成美丽的纹饰。剑柄以丝绳缠缚，剑首向外形翻卷作圆箍，内铸有极其精细的11道同心圆圈。经过研究人员的考证，这把剑，正是那把曾经陪伴勾践走过跌宕起伏一生的越王勾践剑。',
+        imageUrl: '/images/sword_discovery.jpg',
         interactions: [
           {
-            id: '1-4-1',
+            id: '1-6-1',
+            type: 'dialog',
+            data: {
+              character: '考古学家',
+              text: '天啊！这把剑居然毫无锈蚀，如此锋利，两千多年过去了，它依然如新！',
+              emotion: 'amazed'
+            }
+          },
+          {
+            id: '1-6-2',
             type: 'quiz',
             data: {
-              question: '越王勾践剑出土于哪一年？',
+              question: '关于越王勾践剑为何会在楚国贵族墓葬中出现，学术界有两种主要观点，以下哪一项是正确的？',
               options: [
-                { text: '1955年', isCorrect: false },
-                { text: '1965年', isCorrect: true },
-                { text: '1975年', isCorrect: false },
-                { text: '1985年', isCorrect: false }
+                { 
+                  text: '嫁妆说：楚昭王娶了越王勾践的女儿为妃，这把剑作为嫁妆流入楚国', 
+                  isCorrect: true 
+                },
+                { 
+                  text: '战利品说：这把剑是在楚国出兵越国时被缴获的战利品', 
+                  isCorrect: true 
+                },
+                { 
+                  text: '商贸说：越国与楚国商贸往来时作为礼物赠送', 
+                  isCorrect: false 
+                },
+                { 
+                  text: '赏赐说：越王勾践赏赐给楚国贵族的礼物', 
+                  isCorrect: false 
+                }
               ],
-              explanation: '越王勾践剑于1965年在湖北江陵望山1号墓出土，是中国国宝级文物。'
+              explanation: '考古学界对越王勾践剑为何出现在楚国墓葬中有两种主要观点：一是作为嫁妆随越王女儿嫁到楚国；二是作为战利品在楚越战争中被楚国获取。目前学界对这两种观点都有支持者，尚无定论。'
+            }
+          }
+        ]
+      },
+      {
+        id: '1-7',
+        title: '国宝传奇',
+        content: '如今，越王勾践剑静静地躺在湖北省博物馆里，向我们诉说着那段古老的传奇故事。它不仅是中国古代冶金工艺的杰出代表，更是中华民族不屈不挠、自强不息精神的象征。让我们一起走近它，去感受它的温度，去聆听它的声音，去领略它的传奇与魅力。',
+        imageUrl: '/images/sword_museum.jpg',
+        interactions: [
+          {
+            id: '1-7-1',
+            type: 'dialog',
+            data: {
+              character: '博物馆讲解员',
+              text: '越王勾践剑被誉为"天下第一剑"，它的出土不仅震惊了中国，也震惊了世界。这把剑代表了中国古代最高超的青铜冶炼技术，也见证了一段波澜壮阔的历史。',
+              emotion: 'proud'
             }
           }
         ]
@@ -119,23 +227,12 @@ export const stories: Story[] = [
       {
         id: 'scene-1',
         backgroundColor: '#000',
-        backgroundImage: 'https://picsum.photos/id/65/800/600',
+        backgroundImage: '/images/goujian_story_cover.jpg',
         dialogs: [
           {
             id: 'dialog-1-1',
             character: '讲述者',
-            text: '公元前496年，越国与吴国在夫椒进行了一场激烈的战争。越国战败，国君勾践被迫与五千越军降服于吴王夫差。',
-          },
-          {
-            id: 'dialog-1-2',
-            character: '越王勾践',
-            text: '今日之耻，他日必报！我越国虽败，不死！',
-            emotion: 'determined'
-          },
-          {
-            id: 'dialog-1-3',
-            character: '讲述者',
-            text: '在吴国，勾践被迫忍辱负重，为吴王牵马、尝粪以证明其忠诚。他卧薪尝胆，日夜不忘国耻，暗中积蓄力量。',
+            text: '这是一把剑的故事，更是一个王的故事。它见证了一个国家的兴衰荣辱，也见证了一位君主的坚韧与荣耀。',
           }
         ],
         interactionPoints: [
@@ -143,37 +240,30 @@ export const stories: Story[] = [
             id: 'interaction-1-1',
             position: { x: 200, y: 300 },
             type: 'item',
-            hintText: '查看宝剑',
+            hintText: '开始探索越王勾践剑的故事',
             nextScene: 'scene-2'
-          },
-          {
-            id: 'interaction-1-2',
-            position: { x: 100, y: 200 },
-            type: 'character',
-            hintText: '与范蠡交谈',
-            nextScene: 'scene-3'
           }
         ]
       },
       {
         id: 'scene-2',
         backgroundColor: '#321',
-        backgroundImage: 'https://picsum.photos/id/66/800/600',
+        backgroundImage: '/images/goujian_coronation_scene.jpg',
         dialogs: [
           {
             id: 'dialog-2-1',
             character: '讲述者',
-            text: '勾践命令能工巧匠铸造了一把锋利无比的宝剑，以寄托复国雪耻的决心。',
+            text: '公元前496年，越国的王位上，迎来了一位新的君主——勾践。这把青铜铸就的宝剑，便被佩在了他的腰间。',
           },
           {
             id: 'dialog-2-2',
-            character: '工匠',
-            text: '大王，这把剑用了最好的金属材料，融入了我们越国最高超的铸造技术，锋利无比，可断发断金。',
+            character: '越王勾践',
+            text: '父王已逝，今日我继承王位，必将带领越国走向繁荣富强！',
           },
           {
             id: 'dialog-2-3',
-            character: '越王勾践',
-            text: '好！待我复国之日，必以此剑饮吴王之血！',
+            character: '大臣',
+            text: '大王，这把宝剑乃越国能工巧匠精心打造，愿它伴随大王征战四方，保佑越国繁荣昌盛！',
           }
         ],
         interactionPoints: [
@@ -181,30 +271,35 @@ export const stories: Story[] = [
             id: 'interaction-2-1',
             position: { x: 300, y: 400 },
             type: 'item',
-            hintText: '返回',
-            nextScene: 'scene-1'
+            hintText: '了解夫椒之战',
+            nextScene: 'scene-3'
           }
         ]
       },
       {
         id: 'scene-3',
         backgroundColor: '#123',
-        backgroundImage: 'https://picsum.photos/id/67/800/600',
+        backgroundImage: '/images/fuqiao_battle_scene.jpg',
         dialogs: [
           {
             id: 'dialog-3-1',
-            character: '范蠡',
-            text: '大王，臣已为您计划好了复国大计，但需耐心等待时机。',
+            character: '讲述者',
+            text: '公元前494年，夫椒之战的烽火燃起。吴王夫差为了报杀父之仇，率大军气势汹汹地向越国压来。',
           },
           {
             id: 'dialog-3-2',
-            character: '越王勾践',
-            text: '吾愿卧薪尝胆，只为复国雪耻之日。',
+            character: '谋士',
+            text: '大王，吴军势大，我军应当避其锋芒，不可贸然出击！',
           },
           {
             id: 'dialog-3-3',
-            character: '范蠡',
-            text: '大王志向远大，臣必鞠躬尽瘁，助大王实现复国之梦！',
+            character: '越王勾践',
+            text: '不！越国勇士无所畏惧！给我冲！',
+          },
+          {
+            id: 'dialog-3-4',
+            character: '讲述者',
+            text: '结果，越军大败，曾经威风凛凛的越军，如今只剩下了五千残兵败将，狼狈地逃到了会稽山。',
           }
         ],
         interactionPoints: [
@@ -212,7 +307,229 @@ export const stories: Story[] = [
             id: 'interaction-3-1',
             position: { x: 150, y: 350 },
             type: 'item',
-            hintText: '返回',
+            hintText: '见证勾践的屈辱',
+            nextScene: 'scene-4'
+          }
+        ]
+      },
+      {
+        id: 'scene-4',
+        backgroundColor: '#234',
+        backgroundImage: '/images/goujian_servant_scene.jpg',
+        dialogs: [
+          {
+            id: 'dialog-4-1',
+            character: '讲述者',
+            text: '夫椒之战后，勾践陷入了绝境。为了保全性命，他向夫差献上美女、财宝，并自请为吴王的臣仆。',
+          },
+          {
+            id: 'dialog-4-2',
+            character: '吴王夫差',
+            text: '勾践，你今日给我牵马，明日为我驾车！哈哈哈！',
+          },
+          {
+            id: 'dialog-4-3',
+            character: '越王勾践',
+            text: '（内心）忍，必须忍！越国不灭，我志不死！',
+          },
+          {
+            id: 'dialog-4-choice',
+            character: '讲述者',
+            text: '在面对极度屈辱时，勾践的内心是怎样想的？',
+            choices: [
+              {
+                text: '接受命运，认命做奴仆',
+                outcome: '勾践绝不会放弃越国的希望和复国的梦想。这不是正确的选择。',
+                isCorrect: false
+              },
+              {
+                text: '暗中积蓄力量，等待复仇时机',
+                outcome: '没错！勾践表面恭顺，内心却从未放弃复国雪耻的决心。这是他最终成功的关键。',
+                isCorrect: true
+              },
+              {
+                text: '寻机刺杀吴王夫差',
+                outcome: '勾践深知此时刺杀夫差只会导致越国彻底灭亡。这种冲动的选择不是明智之举。',
+                isCorrect: false
+              }
+            ]
+          }
+        ],
+        interactionPoints: [
+          {
+            id: 'interaction-4-1',
+            position: { x: 200, y: 300 },
+            type: 'item',
+            hintText: '见证卧薪尝胆',
+            nextScene: 'scene-5'
+          },
+          {
+            id: 'interaction-4-2',
+            position: { x: 150, y: 200 },
+            type: 'character',
+            hintText: '了解勾践的内心想法',
+            triggerDialog: 'dialog-4-choice'
+          }
+        ]
+      },
+      {
+        id: 'scene-5',
+        backgroundColor: '#345',
+        backgroundImage: '/images/goujian_gall_scene.jpg',
+        dialogs: [
+          {
+            id: 'dialog-5-1',
+            character: '讲述者',
+            text: '回国后的勾践，没有忘记会稽之耻，他把苦胆挂到了座位上，无论是坐卧还是吃饭，都要尝尝苦胆的滋味。',
+          },
+          {
+            id: 'dialog-5-2',
+            character: '越王勾践',
+            text: '（尝一口苦胆）这苦涩的滋味，提醒我不忘国耻！只有国家强大，才能洗刷耻辱！',
+          },
+          {
+            id: 'dialog-5-3',
+            character: '范蠡',
+            text: '大王，臣已安排能工巧匠打造更多宝剑，训练精锐部队。十年之内，越国必将强盛！',
+          }
+        ],
+        interactionPoints: [
+          {
+            id: 'interaction-5-1',
+            position: { x: 250, y: 350 },
+            type: 'item',
+            hintText: '见证复仇之战',
+            nextScene: 'scene-6'
+          }
+        ]
+      },
+      {
+        id: 'scene-6',
+        backgroundColor: '#456',
+        backgroundImage: '/images/goujian_victory_scene.jpg',
+        dialogs: [
+          {
+            id: 'dialog-6-1',
+            character: '讲述者',
+            text: '经过多年的努力，越国终于迎来了复仇之时。公元前473年，勾践率军攻打吴国，大败吴军。',
+          },
+          {
+            id: 'dialog-6-2',
+            character: '越王勾践',
+            text: '二十年的等待，终于等到了这一刻！吴国灭亡，越国崛起！',
+          },
+          {
+            id: 'dialog-6-3',
+            character: '讲述者',
+            text: '这把剑，仿佛是勾践的守护神，又仿佛是越国的象征，它见证了越国从屈辱到荣耀的全过程。',
+          }
+        ],
+        interactionPoints: [
+          {
+            id: 'interaction-6-1',
+            position: { x: 200, y: 300 },
+            type: 'item',
+            hintText: '探索剑的命运',
+            nextScene: 'scene-7'
+          }
+        ]
+      },
+      {
+        id: 'scene-7',
+        backgroundColor: '#567',
+        backgroundImage: '/images/sword_discovery_scene.jpg',
+        dialogs: [
+          {
+            id: 'dialog-7-1',
+            character: '讲述者',
+            text: '时间来到了1965年的冬天，在湖北省荆州市附近的望山一号楚国贵族墓的挖掘现场。',
+          },
+          {
+            id: 'dialog-7-2',
+            character: '考古学家',
+            text: '等等！这里有一个漆木箱鞘...天啊！这把剑居然毫无锈蚀，如此锋利！',
+          },
+          {
+            id: 'dialog-7-3',
+            character: '讲述者',
+            text: '剑全长55.6厘米，剑身满饰黑色菱形几何暗花纹，剑格镶嵌着蓝色琉璃和绿松石。经考证，这就是越王勾践剑。',
+          },
+          {
+            id: 'dialog-7-4',
+            character: '考古专家',
+            text: '关于这把剑为何会出现在楚国贵族墓中，学界有不同观点。你们认为最可能的原因是什么？',
+          },
+          {
+            id: 'dialog-7-quiz',
+            character: '考古专家',
+            text: '关于越王勾践剑为何会在楚国贵族墓葬中出现，学术界有两种主要观点，以下哪些是正确的？',
+            quiz: {
+              options: [
+                { 
+                  text: '嫁妆说：楚昭王娶了越王勾践的女儿为妃，这把剑作为嫁妆流入楚国', 
+                  isCorrect: true 
+                },
+                { 
+                  text: '战利品说：这把剑是在楚国出兵越国时被缴获的战利品', 
+                  isCorrect: true 
+                },
+                { 
+                  text: '商贸说：越国与楚国商贸往来时作为礼物赠送', 
+                  isCorrect: false 
+                },
+                { 
+                  text: '赏赐说：越王勾践赏赐给楚国贵族的礼物', 
+                  isCorrect: false 
+                }
+              ],
+              explanation: '考古学界对越王勾践剑为何出现在楚国墓葬中有两种主要观点：一是作为嫁妆随越王女儿嫁到楚国；二是作为战利品在楚越战争中被楚国获取。目前学界对这两种观点都有支持者，尚无定论。'
+            }
+          }
+        ],
+        interactionPoints: [
+          {
+            id: 'interaction-7-1',
+            position: { x: 150, y: 350 },
+            type: 'item',
+            hintText: '参观博物馆中的勾践剑',
+            nextScene: 'scene-8'
+          },
+          {
+            id: 'interaction-7-2',
+            position: { x: 250, y: 300 },
+            type: 'character',
+            hintText: '思考剑的来源',
+            triggerDialog: 'dialog-7-quiz'
+          }
+        ]
+      },
+      {
+        id: 'scene-8',
+        backgroundColor: '#678',
+        backgroundImage: '/images/sword_museum_scene.jpg',
+        dialogs: [
+          {
+            id: 'dialog-8-1',
+            character: '讲述者',
+            text: '如今，越王勾践剑静静地躺在湖北省博物馆里，向我们诉说着那段古老的传奇故事。',
+          },
+          {
+            id: 'dialog-8-2',
+            character: '博物馆讲解员',
+            text: '越王勾践剑被誉为"天下第一剑"，它不仅是中国古代冶金工艺的杰出代表，更是中华民族不屈不挠精神的象征。',
+          },
+          {
+            id: 'dialog-8-3',
+            character: '讲述者',
+            text: '让我们一起走近它，去感受它的温度，去聆听它的声音，去领略它的传奇与魅力。',
+          }
+        ],
+        interactionPoints: [
+          {
+            id: 'interaction-8-1',
+            position: { x: 200, y: 300 },
+            type: 'item',
+            hintText: '回到故事开始',
             nextScene: 'scene-1'
           }
         ]

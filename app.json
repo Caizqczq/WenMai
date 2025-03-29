@@ -3,7 +3,7 @@
     "name": "文脉",
     "slug": "wenhua",
     "version": "1.0.0",
-    "orientation": "portrait",
+    "orientation": "default",
     "icon": "./assets/images/icon.png",
     "scheme": "wenhua",
     "userInterfaceStyle": "automatic",
@@ -23,7 +23,18 @@
         "NSLocationAlwaysAndWhenInUseUsageDescription": "我们需要获取您的位置以便在地图上显示您当前的位置",
         "NSCameraUsageDescription": "我们需要使用您的相机以便识别文物",
         "NSPhotoLibraryUsageDescription": "我们需要访问您的相册以保存识别的文物照片",
-        "NSPhotoLibraryAddUsageDescription": "我们需要访问您的相册以保存识别的文物照片"
+        "NSPhotoLibraryAddUsageDescription": "我们需要访问您的相册以保存识别的文物照片",
+        "UISupportedInterfaceOrientations": [
+          "UIInterfaceOrientationPortrait",
+          "UIInterfaceOrientationLandscapeLeft",
+          "UIInterfaceOrientationLandscapeRight"
+        ],
+        "UISupportedInterfaceOrientations~ipad": [
+          "UIInterfaceOrientationPortrait",
+          "UIInterfaceOrientationPortraitUpsideDown",
+          "UIInterfaceOrientationLandscapeLeft",
+          "UIInterfaceOrientationLandscapeRight"
+        ]
       }
     },
     "android": {
@@ -61,6 +72,12 @@
           "photosPermission": "允许\"文脉\"访问您的相册以保存识别的文物照片。",
           "savePhotosPermission": "允许\"文脉\"保存照片到您的相册。",
           "isAccessMediaLocationEnabled": true
+        }
+      ],
+      [
+        "expo-screen-orientation",
+        {
+          "initialOrientation": "DEFAULT"
         }
       ]
     ],

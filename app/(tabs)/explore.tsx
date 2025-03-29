@@ -14,6 +14,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import StoryCard from '../../components/home/StoryCard';
 import { relicService, storyService, regionService } from '../../data/services';
 import { Relic, Story, Region } from '../../data/types';
 import { COLORS, RADIUS, SHADOWS } from '../../constants/Colors';
@@ -141,32 +142,16 @@ export default function ExploreScreen() {
           <Text style={styles.sectionTitle}>推荐故事</Text>
           <View style={styles.storiesContainer}>
             {popularStories.map(story => (
-              <TouchableOpacity 
+              <StoryCard
                 key={story.id}
-                style={styles.storyCard}
-                onPress={() => router.push(`/story/${story.id}` as any)}
-                activeOpacity={0.8}
-              >
-                <Image 
-                  source={{ uri: story.coverImage }}
-                  style={styles.storyImage}
-                  resizeMode="cover"
-                />
-                <View style={styles.storyInfo}>
-                  <Text style={styles.storyTitle}>{story.title}</Text>
-                  <Text style={styles.storySummary} numberOfLines={2}>
-                    {story.summary}
-                  </Text>
-                  <View style={styles.storyMeta}>
-                    <Text style={styles.storyDuration}>
-                      {story.duration ? `约${story.duration}分钟` : '未知时长'}
-                    </Text>
-                    <View style={styles.storyButton}>
-                      <Text style={styles.storyButtonText}>查看故事</Text>
-                    </View>
-                  </View>
-                </View>
-              </TouchableOpacity>
+                id={story.id}
+                title={story.title}
+                cover={story.coverImage}
+                description={story.summary}
+                completionRate={0}
+                isNew={false}
+                supportsLandscape={story.supportsLandscape}
+              />
             ))}
           </View>
         </View>

@@ -64,12 +64,33 @@ export interface RelicSite {
   type?: 'museum' | 'site' | 'monument';
 }
 
+// 故事对话选项
+export interface DialogChoice {
+  text: string;
+  outcome: string;
+  isCorrect: boolean;
+}
+
+// 问答选项
+export interface QuizOption {
+  text: string;
+  isCorrect: boolean;
+}
+
+// 问答数据
+export interface QuizData {
+  options: QuizOption[];
+  explanation: string;
+}
+
 // 故事对话
 export interface Dialog {
   id: string;
   character: string;
   text: string;
   emotion?: string;
+  choices?: DialogChoice[]; // 用于选择题对话
+  quiz?: QuizData; // 用于问答题对话
 }
 
 // 故事交互点
@@ -103,6 +124,7 @@ export interface Story {
   duration?: number; // 预计阅读/体验时间（分钟）
   tags?: string[];
   scenes?: Scene[]; // 互动故事场景
+  supportsLandscape?: boolean; // 标记故事是否支持横屏模式
 }
 
 // 故事章节

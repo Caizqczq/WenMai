@@ -81,8 +81,8 @@ export const relicsData: Relic[] = [
     dynasty: '春秋晚期',
     category: '青铜器',
     color: '#CD7F32',
-    image: 'https://picsum.photos/id/65/800/600',
-    description: '越王勾践剑是中国春秋晚期越国的青铜宝剑，1965年在湖北江陵望山1号墓出土，是中国国宝级文物。',
+    image: '/images/goujian_sword_cover.jpg',
+    description: '越王勾践剑是中国春秋晚期越国的青铜宝剑，1965年在湖北江陵望山1号楚国贵族墓出土，是中国国宝级文物。它见证了越国从屈辱到荣耀的全过程，也见证了勾践卧薪尝胆、复国雪耻的传奇故事。',
     era: '公元前496年-公元前465年',
     location: '湖北江陵',
     museum: '湖北省博物馆',
@@ -90,7 +90,8 @@ export const relicsData: Relic[] = [
     significance: [
       '中国古代青铜冶炼与锻造工艺的杰出代表',
       '保存完好，寒光逼人，锋利无比，历经两千余年不锈',
-      '铭文"越王鸠浅"为文献记载中的越王勾践'
+      '铭文"越王鸠浅"为文献记载中的越王勾践',
+      '剑身满饰黑色菱形几何暗花纹，剑格用蓝色琉璃和绿松石镶嵌'
     ],
     relatedRelics: ['101']
   },
