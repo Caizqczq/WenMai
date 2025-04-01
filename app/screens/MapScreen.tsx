@@ -40,8 +40,12 @@ const MapScreen = () => {
 
   // 获取当前筛选后的点位
   const filteredRelicSites = useMemo(() => {
-    if (!selectedRegion) return relicSites;
-    return relicSites.filter(site => site.regionId === selectedRegion);
+    // 首先筛选出只有博物馆类型的点位
+    const museumSites = relicSites.filter(site => site.type === 'museum');
+    
+    // 然后根据所选地区进一步筛选
+    if (!selectedRegion) return museumSites;
+    return museumSites.filter(site => site.regionId === selectedRegion);
   }, [relicSites, selectedRegion]);
 
   // 添加数据加载逻辑
@@ -50,13 +54,13 @@ const MapScreen = () => {
       try {
         const [regionsData, sitesData] = await Promise.all([
           regionService.getAllRegions(),
-          regionService.getAllRelicSites()
+          regionService.getRelicSitesByType('museum') // 只加载博物馆类型的点位
         ]);
         
         setRegions(regionsData);
         setRelicSites(sitesData);
         setDataLoaded(true);
-        console.log(`加载了 ${regionsData.length} 个地区和 ${sitesData.length} 个文物点位`);
+        console.log(`加载了 ${regionsData.length} 个地区和 ${sitesData.length} 个博物馆点位`);
         
         // 数据加载完成后尝试请求位置权限
         requestLocationPermission();
@@ -113,9 +117,9 @@ const MapScreen = () => {
       // 创建标记 - ${site.name}
       var customIcon_${site.id} = new BMap.Icon(
         "${iconUrl}", 
-        new BMap.Size(32, 32),  // 图标大小，调整为适中大小
+        new BMap.Size(48, 48),  // 图标大小，调整为适中大小
         {
-          imageSize: new BMap.Size(32, 32),  // 图片大小
+          imageSize: new BMap.Size(48, 48),  // 图片大小
           anchor: new BMap.Size(16, 32)      // 锚点位置，底部中心
         }
       );
@@ -249,6 +253,7 @@ const MapScreen = () => {
       <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>博物馆地图</title>
         <style>
           body, html {
             margin: 0;
@@ -273,12 +278,26 @@ const MapScreen = () => {
             z-index: 9999;
             display: none; /* 默认隐藏状态栏 */
           }
+          #mapTitle {
+            position: absolute;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 8px 15px;
+            background: rgba(255,255,255,0.9);
+            border-radius: 20px;
+            font-weight: bold;
+            color: #8B4513;
+            z-index: 9999;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+          }
         </style>
         <script type="text/javascript" src="https://api.map.baidu.com/api?v=3.0&ak=${BAIDU_MAP_API_KEY}"></script>
       </head>
       <body>
         <div id="container"></div>
         <div id="status">加载中...</div>
+        <div id="mapTitle">博物馆地图</div>
         
         <script>
           function log(msg) {
@@ -593,7 +612,7 @@ const MapScreen = () => {
       {!isFullscreen && (
         <View style={styles.regionSelectorContainer}>
           <View style={styles.regionHeader}>
-            <Text style={styles.regionTitle}>选择地区</Text>
+            <Text style={styles.regionTitle}>博物馆地图</Text>
           </View>
           <ScrollView 
             horizontal 
@@ -605,7 +624,7 @@ const MapScreen = () => {
               style={[styles.regionButton, selectedRegion === null && styles.activeRegion]}
               onPress={() => setSelectedRegion(null)}
             >
-              <Text style={[styles.regionButtonText, selectedRegion === null && styles.activeRegionText]}>全部地区</Text>
+              <Text style={[styles.regionButtonText, selectedRegion === null && styles.activeRegionText]}>全部博物馆</Text>
             </TouchableOpacity>
             
             {regions.map(region => (

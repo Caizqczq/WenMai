@@ -541,7 +541,7 @@ export const stories: Story[] = [
     title: '莫高窟的前世今生',
     relicId: '103',
     summary: '敦煌莫高窟始建于十六国的前秦时期，历经北朝、隋、唐、五代、西夏、元等多个朝代的修建和扩建，记录了近千年的佛教艺术发展历程。',
-    coverImage: 'https://picsum.photos/id/43/800/600',
+    coverImage: '/images/mogaoku.png',
     duration: 20,
     tags: ['佛教', '壁画', '丝绸之路'],
     chapters: [
@@ -650,7 +650,7 @@ export const stories: Story[] = [
     title: '马踏飞燕的传奇',
     relicId: '106',
     summary: '马踏飞燕，又称"马超龙雀"，是中国东汉时期的青铜器珍品，被誉为中国旅游的标志。这件文物于1969年在甘肃武威雷台汉墓中出土，揭示了古代丝绸之路的繁荣与文化交流。',
-    coverImage: 'https://picsum.photos/id/98/800/600',
+    coverImage: '/images/matafeiyan.png',
     duration: 12,
     tags: ['青铜器', '汉代', '丝绸之路'],
     scenes: [

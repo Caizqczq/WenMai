@@ -19,6 +19,7 @@ import { relicService, storyService, regionService } from '../../data/services';
 import { Relic, Story, Region } from '../../data/types';
 import { COLORS, RADIUS, SHADOWS } from '../../constants/Colors';
 import LoadingIndicator from '../../components/ui/LoadingIndicator';
+import { getImageSource } from '../../utils/imageUtils';
 
 const { width } = Dimensions.get('window');
 
@@ -121,7 +122,7 @@ export default function ExploreScreen() {
                 activeOpacity={0.8}
               >
                 <Image 
-                  source={{ uri: relic.image }}
+                  source={getImageSource(relic.image)}
                   style={styles.relicImage}
                   resizeMode="cover"
                 />
@@ -161,7 +162,7 @@ export default function ExploreScreen() {
           <Text style={styles.sectionTitle}>探索地区</Text>
           <TouchableOpacity 
             style={styles.mapCard}
-            onPress={() => router.push('/' as any)}
+            onPress={() => router.push('/map' as any)}
             activeOpacity={0.8}
           >
             <Image 

@@ -114,6 +114,7 @@ function RootLayoutNav({ colorScheme }: { colorScheme: 'light' | 'dark' }) {
             <Stack.Screen name="relic/[id]" options={{ headerShown: false }} />
             <Stack.Screen name="region/[id]" options={{ headerShown: false }} />
             <Stack.Screen name="story/[id]" options={{ headerShown: false, gestureEnabled: false }} />
+            <Stack.Screen name="map" options={{ headerShown: false }} />
             <Stack.Screen name="modal" options={{ presentation: 'modal', headerShown: false }} />
           </Stack>
         </ThemeProvider>
