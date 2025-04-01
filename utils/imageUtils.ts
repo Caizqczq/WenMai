@@ -2,6 +2,7 @@
 const imageMap: Record<string, any> = {
   // 主要图片
   '/images/goujian_sword_cover.jpg': require('../assets/images/goujian_sword_cover.jpg'),
+  '/images/siyangfangzun.png': require('../assets/images/siyangfangzun.png'),
 
   
   // 场景图片 - 使用本地文件（注意PNG扩展名）

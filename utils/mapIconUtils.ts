@@ -6,21 +6,26 @@
 import { getImageSource } from './imageUtils';
 
 // 导入本地图标
-const gugongIcon = require('../assets/images/markers/gugong.png');
-
+const hubeiIcon = require('../assets/images/markers/gugong.png');
+const hunanIcon = require('../assets/images/markers/hunan.png');
+const zhejiangIcon = require('../assets/images/markers/zhejiang.png');
+const guoboIcon = require('../assets/images/markers/guobo.png');
+const shanxiIcon = require('../assets/images/markers/shanxi.png');
+const sichuanIcon = require('../assets/images/markers/sichuan.png');
+const gansuIcon = require('../assets/images/markers/gansu.png');
 // 博物馆ID与图标的映射关系 - 混合使用本地图标和在线图标
 const SITE_ICON_MAP: Record<string, any> = {
   // 不同博物馆的自定义图标
-  '101': gugongIcon,                                                            // 故宫博物院 - 使用本地图标
+  '111': guoboIcon,                                                            // 故宫博物院 - 使用本地图标
   '102': 'https://img.icons8.com/color/48/000000/terracotta-army.png',          // 秦始皇兵马俑
   '103': 'https://img.icons8.com/color/48/000000/great-wall.png',               // 莫高窟
-  '104': 'https://img.icons8.com/color/48/000000/bronze-vessel.png',            // 三星堆博物馆
+  '104':  sichuanIcon,                                                            // 三星堆博物馆
   '105': 'https://img.icons8.com/color/48/000000/pagoda.png',                   // 苏州博物馆
-  '106': 'https://img.icons8.com/color/48/000000/temple-of-heaven.png',         // 陕西历史博物馆
-  '107': 'https://img.icons8.com/color/48/000000/chinese-coin.png',             // 湖南省博物馆
-  '108': 'https://img.icons8.com/color/48/000000/chinese-lantern.png',          // 甘肃省博物馆
-  '109': 'https://img.icons8.com/color/48/000000/sword.png',                    // 湖北省博物馆(越王勾践剑)
-  '110': 'https://img.icons8.com/color/48/000000/chinese-scroll.png',           // 浙江省博物馆(富春山居图)
+  '106': shanxiIcon,                                                            // 陕西历史博物馆
+  '107': hunanIcon,                                                            // 湖南省博物馆 - 使用本地图标
+  '108': gansuIcon,                                                            // 甘肃省博物馆
+  '109': hubeiIcon,                                                            // 湖北省博物馆(越王勾践剑)
+  '110': zhejiangIcon,                                                            // 浙江省博物馆(富春山居图)
 };
 
 // 不同类型点位的默认图标 - 使用在线图标URL

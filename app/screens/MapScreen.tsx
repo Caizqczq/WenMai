@@ -155,13 +155,13 @@ const MapScreen = () => {
              <button 
                onclick="window.ReactNativeWebView.postMessage(JSON.stringify({type: 'viewDetails', id: '${site.id}'}))" 
                style="background-color: #8B4513; color: white; border: none; border-radius: 4px; padding: 8px 14px; margin-top: 6px; float: right; font-size: 14px; cursor: pointer;">
-               查看详情
+               查看博物馆详情
              </button>` 
             : 
             `<button 
                onclick="window.ReactNativeWebView.postMessage(JSON.stringify({type: 'viewDetails', id: '${site.id}'}))" 
                style="background-color: #8B4513; color: white; border: none; border-radius: 4px; padding: 8px 14px; margin-top: 6px; float: right; font-size: 14px; cursor: pointer;">
-               查看详情
+               查看博物馆详情
              </button>`
           }
           <div style="clear: both;"></div>
@@ -379,11 +379,11 @@ const MapScreen = () => {
         if (jsonData.type === 'markerClick') {
           // 在地图上已经显示了信息窗口，不需要单独设置selectedRelicSite
         } else if (jsonData.type === 'viewDetails') {
-          // 查找点位并跳转到详情页
+          // 查找点位并跳转到博物馆详情页
           const site = relicSites.find(site => site.id === jsonData.id);
-          if (site && site.relicIds && site.relicIds.length > 0) {
-            const relicId = site.relicIds[0];
-            router.push(`/relic/${relicId}`);
+          if (site) {
+            // 直接跳转到博物馆详情页
+            router.push(`/museum/${site.id}` as any);
           }
         }
       } catch (e) {

@@ -151,23 +151,23 @@ export const relicsData: Relic[] = [
   },
   {
     id: '109',
-    name: '皿方罍',
-    dynasty: '西周',
+    name: '四羊方尊',
+    dynasty: '商代晚期',
     category: '青铜器',
     color: '#CD7F32',
-    image: 'https://picsum.photos/id/70/800/600',
-    description: '皿方罍是西周早期的青铜礼器，1976年在陕西扶风出土，为国家一级文物。',
-    era: '公元前11世纪',
-    location: '陕西扶风',
-    museum: '陕西历史博物馆',
-    discoveryYear: '1976年',
+    image: '/images/siyangfangzun.png',
+    description: '四羊方尊是商代晚期青铜礼器，1938年在湖南宁乡出土，因器身四角饰有羊角而得名，为国家一级文物。',
+    era: '公元前13-12世纪',
+    location: '湖南宁乡',
+    museum: '中国国家博物馆',
+    discoveryYear: '1938年',
     significance: [
-      '西周礼制文化的重要代表',
-      '铭文记载了西周初年周公平定东方三监之乱的历史',
+      '中国商代青铜文化的代表作',
+      '体现了商代高超的青铜铸造工艺',
       '具有重要的历史价值和艺术价值'
     ],
     relatedRelics: ['101']
-  },
+  }
   // {
   //   id: '110',
   //   name: '粉彩花卉纹瓷瓶',

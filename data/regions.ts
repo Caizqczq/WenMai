@@ -69,17 +69,17 @@ export const regions: Region[] = [
 
 // 文物点位数据
 export const relicSites: RelicSite[] = [
-  { 
-    id: '101', 
-    name: '故宫博物院', 
-    latitude: 39.9163, 
-    longitude: 116.3972, 
-    regionId: '1',
-    relicIds: ['101', '107', '110'],
-    description: '中国明清两代的皇家宫殿，世界上现存规模最大、保存最为完整的木质结构古建筑之一。',
-    imageUrl: 'https://picsum.photos/id/100/800/600',
-    type: 'museum'
-  },
+  // { 
+  //   id: '101', 
+  //   name: '故宫博物院', 
+  //   latitude: 39.9163, 
+  //   longitude: 116.3972, 
+  //   regionId: '1',
+  //   relicIds: ['107'],
+  //   description: '中国明清两代的皇家宫殿，世界上现存规模最大、保存最为完整的木质结构古建筑之一。',
+  //   imageUrl: 'https://picsum.photos/id/100/800/600',
+  //   type: 'museum'
+  // },
   { 
     id: '102', 
     name: '秦始皇兵马俑', 
@@ -113,24 +113,24 @@ export const relicSites: RelicSite[] = [
     imageUrl: 'https://picsum.photos/id/104/800/600',
     type: 'museum'
   },
-  { 
-    id: '105', 
-    name: '苏州博物馆', 
-    latitude: 31.3213, 
-    longitude: 120.6288, 
-    regionId: '2',
-    relicIds: [],
-    description: '由著名华裔建筑大师贝聿铭设计，融合了传统与现代的建筑风格。',
-    imageUrl: 'https://picsum.photos/id/105/800/600',
-    type: 'museum'
-  },
+  // { 
+  //   id: '105', 
+  //   name: '苏州博物馆', 
+  //   latitude: 31.3213, 
+  //   longitude: 120.6288, 
+  //   regionId: '2',
+  //   relicIds: [],
+  //   description: '由著名华裔建筑大师贝聿铭设计，融合了传统与现代的建筑风格。',
+  //   imageUrl: 'https://picsum.photos/id/105/800/600',
+  //   type: 'museum'
+  // },
   { 
     id: '106', 
     name: '陕西历史博物馆', 
     latitude: 34.2377, 
     longitude: 108.9376, 
     regionId: '4',
-    relicIds: ['109'],
+    relicIds: [],
     description: '中国第一座大型现代化国家级博物馆，收藏了陕西出土的珍贵文物。',
     imageUrl: 'https://picsum.photos/id/106/800/600',
     type: 'museum'
@@ -141,7 +141,7 @@ export const relicSites: RelicSite[] = [
     latitude: 28.1926, 
     longitude: 112.9850, 
     regionId: '3',
-    relicIds: ['104'],
+    relicIds: [],
     description: '湖南省最大的综合性博物馆，收藏了大量马王堆汉墓出土文物。',
     imageUrl: 'https://picsum.photos/id/107/800/600',
     type: 'museum'
@@ -177,6 +177,17 @@ export const relicSites: RelicSite[] = [
     relicIds: ['108'],
     description: '收藏了富春山居图等珍贵文物，是浙江省最大的综合性博物馆。',
     imageUrl: 'https://picsum.photos/id/110/800/600',
+    type: 'museum'
+  },
+  { 
+    id: '111', 
+    name: '中国国家博物馆', 
+    latitude: 39.9053, 
+    longitude: 116.4034, 
+    regionId: '1',
+    relicIds: ['101', '104', '107','109'],
+    description: '中国最大的综合性博物馆，收藏了中国古代文明发展的重要文物。',
+    imageUrl: 'https://picsum.photos/id/111/800/600',
     type: 'museum'
   },
 ];
