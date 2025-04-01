@@ -165,7 +165,7 @@ export const relicSites: RelicSite[] = [
     regionId: '7',
     relicIds: ['105'],
     description: '收藏了大量楚文化文物，包括越王勾践剑等国宝级文物。',
-    imageUrl: 'https://picsum.photos/id/109/800/600',
+    imageUrl: '/images/hubei.png',
     type: 'museum'
   },
   { 

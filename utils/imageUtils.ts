@@ -29,6 +29,7 @@ const imageMap: Record<string, any> = {
   '/images/fuchunshanjutu.png': require('../assets/images/fuchunshanjutu.png'),
   '/images/matafeiyan.png': require('../assets/images/matafeiyan.png'),
   '/images/qingmingshanghetu.png': require('../assets/images/qingmingshanghetu.png'),
+  '/images/hubei.png': require('../assets/images/hubei.png'),
   
   // 仍然缺少的图片使用网络图片
   '/images/sword_museum.jpg': { uri: 'https://img.zcool.cn/community/011b3457a02a500000018c1b3ec9a9.jpg@1280w_1l_2o_100sh.jpg' },
