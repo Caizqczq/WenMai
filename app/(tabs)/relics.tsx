@@ -12,13 +12,12 @@ import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons, MaterialCommunityIcons, FontAwesome5, AntDesign } from '@expo/vector-icons';
-import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import { COLORS, FONTS, SPACING, RADIUS, SHADOWS } from '../../constants/Colors';
-import Card from '../../components/ui/Card';
 import { Relic, Category, Dynasty, FilterOptions } from '../../data/types';
 import { relicService, categoryService, dynastyService } from '../../data/services';
 import LoadingIndicator from '../../components/ui/LoadingIndicator';
+import { getImageSource } from '../../utils/imageUtils';
 
 const { width, height } = Dimensions.get('window');
 
@@ -45,7 +44,6 @@ export default function RelicsScreen() {
   const loadData = async () => {
     try {
       setIsLoading(true);
-      
       // 并行加载所有数据
       const [relicsResult, featuredRelicsResult, categoriesResult, dynastiesResult] = await Promise.all([
         relicService.getAllRelics(),
@@ -278,7 +276,7 @@ export default function RelicsScreen() {
       >
         <View style={styles.relicImageContainer}>
           <Image 
-            source={{ uri: item.image }}
+            source={getImageSource(item.image)}
             style={styles.relicImage}
             resizeMode="cover"
           />
@@ -398,7 +396,7 @@ export default function RelicsScreen() {
                     onPress={() => handleRelicPress(item.id)}
                   >
                     <Image 
-                      source={{ uri: item.image }}
+                      source={getImageSource(item.image)}
                       style={styles.carouselImage}
                       resizeMode="cover"
                     />

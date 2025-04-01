@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { View, StyleSheet, Text, TouchableOpacity, ActivityIndicator, Platform, ScrollView, Alert } from 'react-native';
+import { View, StyleSheet, Text, TouchableOpacity, ActivityIndicator, Platform, ScrollView, Alert, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { WebView, WebViewMessageEvent } from 'react-native-webview';
@@ -9,6 +9,8 @@ import { regionService } from '../../data/services';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
+// 导入地图图标工具
+import { getMapIconUrl } from '../../utils/mapIconUtils';
 
 // 修改百度地图API密钥，直接使用字符串避免编码问题
 const BAIDU_MAP_API_KEY = "Q8PGQJZ0llabSmb3OMnsx5HRobi4HdtZ";
@@ -86,30 +88,88 @@ const MapScreen = () => {
   // 生成地图HTML内容
   const generateMapHtml = useMemo(() => {
     // 生成筛选后的文物点位的标记代码
-    const markersCode = filteredRelicSites.map(site => `
+    const markersCode = filteredRelicSites.map(site => {
+      // 获取自定义图标URL或本地资源
+      const iconSource = getMapIconUrl(site.id, site.type);
+      
+      // 处理图标URL - 如果是本地资源，则获取其URI
+      let iconUrl = '';
+      if (typeof iconSource === 'string') {
+        // 在线图标，直接使用URL
+        iconUrl = iconSource;
+      } else {
+        // 本地图片资源，获取URI
+        try {
+          const resolvedSource = Image.resolveAssetSource(iconSource);
+          iconUrl = resolvedSource.uri;
+        } catch (error) {
+          console.error('处理本地图标出错:', error);
+          // 出错使用默认图标
+          iconUrl = 'https://img.icons8.com/color/48/000000/marker.png';
+        }
+      }
+      
+      return `
       // 创建标记 - ${site.name}
-      var marker_${site.id} = new BMap.Marker(new BMap.Point(${site.longitude}, ${site.latitude}));
+      var customIcon_${site.id} = new BMap.Icon(
+        "${iconUrl}", 
+        new BMap.Size(32, 32),  // 图标大小，调整为适中大小
+        {
+          imageSize: new BMap.Size(32, 32),  // 图片大小
+          anchor: new BMap.Size(16, 32)      // 锚点位置，底部中心
+        }
+      );
+      
+      // 创建自定义标记
+      var marker_${site.id} = new BMap.Marker(
+        new BMap.Point(${site.longitude}, ${site.latitude}),
+        {icon: customIcon_${site.id}}
+      );
+      
+      // 添加标记到地图
       map.addOverlay(marker_${site.id});
+      
+      // 为标记添加悬停效果
+      marker_${site.id}.addEventListener('mouseover', function() {
+        this.setTop(true);
+        this.setZIndex(9999);
+      });
+      
+      marker_${site.id}.addEventListener('mouseout', function() {
+        this.setTop(false);
+        this.setZIndex(1);
+      });
       
       // 为标记创建信息窗口内容
       var infoContent_${site.id} = \`
-        <div style="padding: 10px; max-width: 250px;">
-          <div style="font-weight: bold; font-size: 16px; color: #8B4513; margin-bottom: 8px;">${site.name}</div>
-          ${site.description ? `<div style="font-size: 14px; margin-bottom: 8px;">${site.description}</div>` : ''}
+        <div style="padding: 12px; max-width: 280px; font-family: Arial, sans-serif;">
+          <div style="font-weight: bold; font-size: 16px; color: #8B4513; margin-bottom: 10px; border-bottom: 1px solid #e0e0e0; padding-bottom: 8px;">${site.name}</div>
+          ${site.description ? `<div style="font-size: 14px; line-height: 1.5; margin-bottom: 10px; color: #333;">${site.description}</div>` : ''}
+          ${site.type ? `<div style="font-size: 12px; color: #666; margin-bottom: 8px;"><span style="background-color: #f0f0f0; padding: 2px 6px; border-radius: 10px; color: #8B4513;">${site.type === 'museum' ? '博物馆' : (site.type === 'site' ? '遗址' : '纪念碑')}</span></div>` : ''}
           ${site.relicIds && site.relicIds.length > 0 ? 
-            `<div style="font-size: 13px; color: #666;">包含${site.relicIds.length}件文物</div>
+            `<div style="font-size: 13px; color: #666; margin-bottom: 10px;">收藏 <b>${site.relicIds.length}</b> 件文物</div>
              <button 
                onclick="window.ReactNativeWebView.postMessage(JSON.stringify({type: 'viewDetails', id: '${site.id}'}))" 
-               style="background-color: #8B4513; color: white; border: none; border-radius: 4px; padding: 6px 12px; margin-top: 8px; float: right; font-size: 14px;">
+               style="background-color: #8B4513; color: white; border: none; border-radius: 4px; padding: 8px 14px; margin-top: 6px; float: right; font-size: 14px; cursor: pointer;">
                查看详情
              </button>` 
-            : ''}
+            : 
+            `<button 
+               onclick="window.ReactNativeWebView.postMessage(JSON.stringify({type: 'viewDetails', id: '${site.id}'}))" 
+               style="background-color: #8B4513; color: white; border: none; border-radius: 4px; padding: 8px 14px; margin-top: 6px; float: right; font-size: 14px; cursor: pointer;">
+               查看详情
+             </button>`
+          }
           <div style="clear: both;"></div>
         </div>
       \`;
       
       // 创建信息窗口对象
-      var infoWindow_${site.id} = new BMap.InfoWindow(infoContent_${site.id});
+      var infoWindow_${site.id} = new BMap.InfoWindow(infoContent_${site.id}, {
+        width: 280,
+        height: 0,
+        enableMessage: false
+      });
       
       // 添加点击事件
       marker_${site.id}.addEventListener('click', function() {
@@ -120,7 +180,7 @@ const MapScreen = () => {
           name: '${site.name}'
         }));
       });
-    `).join('\n');
+    `}).join('\n');
     
     // 确定地图中心点和缩放级别
     let defaultCenter, defaultZoom;
@@ -447,10 +507,10 @@ const MapScreen = () => {
         // 创建自定义图标
         var userIcon = new BMap.Icon(
           "https://api.map.baidu.com/images/geolocation-control/position-icon-14x14.png", 
-          new BMap.Size(28, 28),
+          new BMap.Size(30, 30),
           {
-            imageSize: new BMap.Size(14, 14),
-            anchor: new BMap.Size(7, 7)
+            imageSize: new BMap.Size(15, 15),
+            anchor: new BMap.Size(7.5, 7.5)
           }
         );
         

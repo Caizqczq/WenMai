@@ -26,6 +26,7 @@ import { Relic } from '../../data/types';
 import { relicService, storyService } from '../../data/services';
 import LoadingIndicator from '../../components/ui/LoadingIndicator';
 import RelicDetailHeader from '../../components/RelicDetailHeader';
+import { getImageSource } from '../../utils/imageUtils';
 
 const { width, height } = Dimensions.get('window');
 
@@ -149,10 +150,20 @@ export default function RelicDetailScreen() {
     // 确保图片数组存在
     const images = relic.images || [relic.image];
     
+    // 将图片路径转换为映射表中的资源
+    const processedImages = images.map(img => {
+      // 如果图片已经是 http URL，则直接返回，否则使用 getImageSource 处理
+      if (img && (img.startsWith('http://') || img.startsWith('https://'))) {
+        return img;
+      } else {
+        return getImageSource(img);
+      }
+    });
+    
     return (
       <View style={styles.carouselContainer}>
         <RelicDetailHeader
-          imageUrls={images}
+          imageUrls={processedImages}
           title={relic.name}
           subtitle={relic.description}
           dynasty={relic.dynasty}
@@ -217,7 +228,7 @@ export default function RelicDetailScreen() {
                 }}
               >
                 <Image 
-                  source={{ uri: story.coverImage }}
+                  source={getImageSource(story.coverImage)}
                   style={styles.storyImage}
                   resizeMode="cover"
                 />
@@ -248,17 +259,24 @@ export default function RelicDetailScreen() {
                   key={relatedRelic.id}
                   style={styles.relatedRelicCard}
                   onPress={() => {
-                    // 导航到对应文物详情页
-                    router.push(`/relic/${relatedRelic.id}`);
+                    // 不触发重新加载，而是直接跳到新页面
+                    // 避免闪烁和重新加载相同的组件
+                    router.push(`/relic/${relatedRelic.id}` as any);
                   }}
                 >
                   <Image 
-                    source={{ uri: relatedRelic.image }} 
+                    source={getImageSource(relatedRelic.image)}
                     style={styles.relatedRelicImage}
                     resizeMode="cover"
                   />
-                  <Text style={styles.relatedRelicName} numberOfLines={2}>{relatedRelic.name}</Text>
-                  <Text style={styles.relatedRelicDynasty}>{relatedRelic.dynasty}</Text>
+                  <View style={styles.relatedRelicInfo}>
+                    <Text style={styles.relatedRelicName} numberOfLines={2}>
+                      {relatedRelic.name}
+                    </Text>
+                    <Text style={styles.relatedRelicDynasty}>
+                      {relatedRelic.dynasty}
+                    </Text>
+                  </View>
                 </TouchableOpacity>
               ))}
             </ScrollView>
@@ -486,11 +504,13 @@ const styles = StyleSheet.create({
     width: 120,
     height: 100,
   },
+  relatedRelicInfo: {
+    padding: 8,
+  },
   relatedRelicName: {
     fontSize: 13,
     fontWeight: '500',
     color: COLORS.text,
-    padding: 8,
     paddingBottom: 4,
   },
   relatedRelicDynasty: {

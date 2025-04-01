@@ -14,7 +14,6 @@ import { BlurView } from 'expo-blur';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 
-import { HapticTab } from '@/components/HapticTab';
 import TabBarBackground from '@/components/ui/TabBarBackground';
 import { useTheme } from '@/components/ui/ThemeProvider';
 import { COLORS, SHADOWS, SPACING, RADIUS } from '@/constants/Colors';

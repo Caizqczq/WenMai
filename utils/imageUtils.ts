@@ -2,6 +2,7 @@
 const imageMap: Record<string, any> = {
   // 主要图片
   '/images/goujian_sword_cover.jpg': require('../assets/images/goujian_sword_cover.jpg'),
+
   
   // 场景图片 - 使用本地文件（注意PNG扩展名）
   '/images/goujian_story_cover.jpg': require('../assets/images/goujian_story_cover.jpg'),
@@ -19,6 +20,14 @@ const imageMap: Record<string, any> = {
   '/images/goujian_gall.jpg': require('../assets/images/goujian_gall_scene.png'),
   '/images/goujian_victory.jpg': require('../assets/images/goujian_victory_scene.png'),
   '/images/sword_discovery.jpg': require('../assets/images/sword_discovery_scene.png'),
+  '/images/sanxingdui.jpg': require('../assets/images/sanxingdui.png'),
+  '/images/simuwuding.png': require('../assets/images/simuwuding.png'),
+  '/images/tangsancai.png': require('../assets/images/tangsancai.png'),
+  '/images/qinbingmayong.png': require('../assets/images/qinbingmayong.png'),
+  '/images/mogaoku.png': require('../assets/images/mogaoku.png'),
+  '/images/fuchunshanjutu.png': require('../assets/images/fuchunshanjutu.png'),
+  '/images/matafeiyan.png': require('../assets/images/matafeiyan.png'),
+  '/images/qingmingshanghetu.png': require('../assets/images/qingmingshanghetu.png'),
   
   // 仍然缺少的图片使用网络图片
   '/images/sword_museum.jpg': { uri: 'https://img.zcool.cn/community/011b3457a02a500000018c1b3ec9a9.jpg@1280w_1l_2o_100sh.jpg' },

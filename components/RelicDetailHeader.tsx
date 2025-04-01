@@ -24,7 +24,7 @@ const DOT_SPACING = 8;
 const DOT_INDICATOR_SIZE = DOT_SIZE + 6;
 
 interface RelicDetailHeaderProps {
-  imageUrls: string[];
+  imageUrls: string[] | any[];
   title: string;
   subtitle?: string;
   dynasty?: string;
@@ -136,7 +136,7 @@ const RelicDetailHeader: React.FC<RelicDetailHeaderProps> = ({
   };
   
   // 渲染单个图片
-  const renderImageItem = ({ item, index }: { item: string; index: number }) => {
+  const renderImageItem = ({ item, index }: { item: string | any; index: number }) => {
     // 图片视差效果
     const inputRange = [(index - 1) * width, index * width, (index + 1) * width];
     
@@ -152,10 +152,13 @@ const RelicDetailHeader: React.FC<RelicDetailHeaderProps> = ({
       extrapolate: 'clamp',
     });
     
+    // 处理不同类型的图像源
+    const source = typeof item === 'string' ? { uri: item } : item;
+    
     return (
       <View style={styles.imageContainer}>
         <Animated.Image
-          source={{ uri: item }}
+          source={source}
           style={[
             styles.image,
             {

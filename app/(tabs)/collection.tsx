@@ -25,6 +25,7 @@ import { relicService } from '../../data/services';
 import { Relic } from '../../data/types';
 import LoadingIndicator from '../../components/ui/LoadingIndicator';
 import { COLORS } from '../../constants/Colors';
+import { LinearGradient } from 'expo-linear-gradient';
 
 const { width, height } = Dimensions.get('window');
 
@@ -205,7 +206,12 @@ export default function ARRecognitionScreen() {
                 style={styles.closeButton}
                 onPress={() => setShowResultModal(false)}
               >
-                <Ionicons name="close" size={24} color="#000" />
+                <LinearGradient
+                  colors={['rgba(230,220,210,0.9)', 'rgba(210,200,180,0.9)']}
+                  style={styles.closeButtonGradient}
+                >
+                  <Ionicons name="close" size={24} color="#8B4513" />
+                </LinearGradient>
               </TouchableOpacity>
             </View>
             
@@ -214,8 +220,12 @@ export default function ARRecognitionScreen() {
               contentContainerStyle={styles.resultContent}
             >
               <View style={styles.comparisonContainer}>
+                {/* 左侧展示识别的图片 */}
                 <View style={styles.capturedImageContainer}>
-                  <Text style={styles.comparisonLabel}>您拍摄的照片:</Text>
+                  <View style={styles.comparisonLabelContainer}>
+                    <Ionicons name="camera-outline" size={16} color="#8B4513" />
+                    <Text style={styles.comparisonLabel}>您的照片</Text>
+                  </View>
                   <Image 
                     source={{ uri: recognizedRelic.capturedImageUri }}
                     style={styles.comparisonImage}
@@ -223,41 +233,65 @@ export default function ARRecognitionScreen() {
                   />
                 </View>
                 
-                <View style={styles.relicCard}>
+                {/* 右侧展示匹配的文物图片 */}
+                <View style={styles.capturedImageContainer}>
+                  <View style={styles.comparisonLabelContainer}>
+                    <Ionicons name="checkmark-circle-outline" size={16} color="#8B4513" />
+                    <Text style={styles.comparisonLabel}>匹配文物</Text>
+                  </View>
                   <Image 
                     source={{ uri: recognizedRelic.image }}
-                    style={styles.relicImage}
+                    style={styles.comparisonImage}
                     resizeMode="cover"
                   />
-                  <View style={styles.relicInfo}>
-                    <Text style={styles.relicName}>{recognizedRelic.name}</Text>
-                    <Text style={styles.relicDynasty}>{recognizedRelic.dynasty}</Text>
+                </View>
+              </View>
+              
+              {/* 文物信息卡片 */}
+              <View style={styles.relicInfoCard}>
+                <View style={styles.relicInfoHeader}>
+                  <Text style={styles.relicName}>{recognizedRelic.name}</Text>
+                  <View style={styles.relicBadge}>
+                    <Text style={styles.relicBadgeText}>{recognizedRelic.dynasty}</Text>
+                  </View>
+                </View>
+                
+                {/* 相似度指示器 */}
+                <View style={styles.confidenceContainer}>
+                  <Text style={styles.confidenceLabel}>
+                    识别相似度
+                  </Text>
+                  <View style={styles.confidenceDetails}>
                     <View style={styles.confidenceBar}>
                       <View 
                         style={[
                           styles.confidenceFill, 
-                          {width: `${recognizedRelic.confidence * 100}%`}
+                          {width: `${recognizedRelic.confidence * 100}%`},
+                          recognizedRelic.confidence > 0.8 ? styles.confidenceHighFill : styles.confidenceMediumFill
                         ]} 
                       />
                     </View>
                     <Text style={styles.confidenceText}>
-                      相似度: {Math.round(recognizedRelic.confidence * 100)}%
+                      {Math.round(recognizedRelic.confidence * 100)}%
                     </Text>
                   </View>
                 </View>
+                
+                <View style={styles.descriptionContainer}>
+                  <Text style={styles.descriptionLabel}>文物简介</Text>
+                  <Text style={styles.relicDescription}>
+                    {recognizedRelic.description || "暂无详细描述"}
+                  </Text>
+                </View>
+                
+                <TouchableOpacity 
+                  style={styles.learnMoreButton}
+                  onPress={() => handleRelicPress(recognizedRelic.id)}
+                >
+                  <Text style={styles.learnMoreButtonText}>查看详细信息</Text>
+                  <Ionicons name="arrow-forward" size={16} color="#fff" />
+                </TouchableOpacity>
               </View>
-              
-              <Text style={styles.relicDescription}>
-                {recognizedRelic.description || "暂无详细描述"}
-              </Text>
-              
-              <TouchableOpacity 
-                style={styles.learnMoreButton}
-                onPress={() => handleRelicPress(recognizedRelic.id)}
-              >
-                <Text style={styles.learnMoreButtonText}>了解更多</Text>
-                <Ionicons name="arrow-forward" size={16} color="#fff" />
-              </TouchableOpacity>
             </ScrollView>
           </View>
         </BlurView>
@@ -356,6 +390,10 @@ export default function ARRecognitionScreen() {
               <View style={[styles.recognitionCorner, styles.recognitionCornerTopRight]} />
               <View style={[styles.recognitionCorner, styles.recognitionCornerBottomLeft]} />
               <View style={[styles.recognitionCorner, styles.recognitionCornerBottomRight]} />
+              
+              <View style={styles.recognitionFrameGuide}>
+                <View style={styles.recognitionFrameInner} />
+              </View>
             
               {isRecognizing && (
                 <BlurView intensity={80} style={styles.recognizingOverlay}>
@@ -389,19 +427,21 @@ export default function ARRecognitionScreen() {
         </CameraView>
       </View>
       
-      {/* 历史识别按钮 */}
+      {/* 历史识别按钮 - 移动到屏幕右下角 */}
       {recentRecognitions.length > 0 && (
         <TouchableOpacity 
-          style={styles.historyButton}
+          style={styles.historyFloatingButton}
           onPress={() => setShowHistoryModal(true)}
         >
-          <BlurView intensity={70} style={styles.historyButtonBlur}>
-            <Ionicons name="time-outline" size={20} color="#8B4513" />
-            <Text style={styles.historyButtonText}>历史</Text>
-            <View style={styles.historyBadge}>
-              <Text style={styles.historyBadgeText}>{recentRecognitions.length}</Text>
+          <LinearGradient
+            colors={['rgba(139,69,19,0.9)', 'rgba(139,69,19,0.7)']}
+            style={styles.historyFloatingButtonContent}
+          >
+            <Ionicons name="time-outline" size={22} color="#FFF" />
+            <View style={styles.historyFloatingBadge}>
+              <Text style={styles.historyFloatingBadgeText}>{recentRecognitions.length}</Text>
             </View>
-          </BlurView>
+          </LinearGradient>
         </TouchableOpacity>
       )}
       
@@ -422,7 +462,12 @@ export default function ARRecognitionScreen() {
                   style={styles.closeButton}
                   onPress={() => setShowHistoryModal(false)}
                 >
-                  <Ionicons name="close" size={24} color="#8B4513" />
+                  <LinearGradient
+                    colors={['rgba(230,220,210,0.9)', 'rgba(210,200,180,0.9)']}
+                    style={styles.closeButtonGradient}
+                  >
+                    <Ionicons name="close" size={24} color="#8B4513" />
+                  </LinearGradient>
                 </TouchableOpacity>
               </View>
               
@@ -442,18 +487,24 @@ export default function ARRecognitionScreen() {
                       source={{ uri: item.imageUri }} 
                       style={styles.historyItemImage} 
                     />
-                    <View
+                    <LinearGradient
+                      colors={['transparent', 'rgba(0,0,0,0.7)', 'rgba(0,0,0,0.8)']}
                       style={styles.historyItemGradient}
                     >
                       <View style={styles.historyItemInfo}>
                         <Text style={styles.historyItemName}>{item.name}</Text>
-                        <Text style={styles.historyItemDynasty}>{item.dynasty}</Text>
-                        <View style={styles.historyItemDateContainer}>
-                          <Ionicons name="calendar-outline" size={12} color="#E8D9C0" />
-                          <Text style={styles.historyItemDate}>{item.recognizedAt}</Text>
+                        <View style={styles.historyItemDetails}>
+                          <View style={styles.historyItemDynastyContainer}>
+                            <Ionicons name="time-outline" size={14} color="#F5EFE0" />
+                            <Text style={styles.historyItemDynasty}>{item.dynasty}</Text>
+                          </View>
+                          <View style={styles.historyItemDateContainer}>
+                            <Ionicons name="calendar-outline" size={14} color="#E8D9C0" />
+                            <Text style={styles.historyItemDate}>{item.recognizedAt}</Text>
+                          </View>
                         </View>
                       </View>
-                    </View>
+                    </LinearGradient>
                   </TouchableOpacity>
                 ))}
               </ScrollView>
@@ -622,12 +673,30 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  recognitionFrameGuide: {
+    width: width * 0.75,
+    height: width * 0.75,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.3)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    overflow: 'hidden',
+  },
+  recognitionFrameInner: {
+    width: '100%',
+    height: '100%',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.2)',
+    borderStyle: 'dashed',
+    borderRadius: 8,
+  },
   recognitionCorner: {
     position: 'absolute',
-    top: height / 2 - width * 0.35,
-    left: width / 2 - width * 0.35,
-    width: 30,
-    height: 30,
+    top: height / 2 - width * 0.38,
+    left: width / 2 - width * 0.38,
+    width: 40,
+    height: 40,
     borderTopWidth: 3,
     borderLeftWidth: 3,
     borderColor: '#FFF',
@@ -635,7 +704,7 @@ const styles = StyleSheet.create({
   },
   recognitionCornerTopRight: {
     left: undefined,
-    right: width / 2 - width * 0.35,
+    right: width / 2 - width * 0.38,
     borderLeftWidth: 0,
     borderRightWidth: 3,
     borderTopRightRadius: 8,
@@ -643,7 +712,7 @@ const styles = StyleSheet.create({
   },
   recognitionCornerBottomLeft: {
     top: undefined,
-    bottom: height / 2 - width * 0.35,
+    bottom: height / 2 - width * 0.38,
     borderTopWidth: 0,
     borderBottomWidth: 3,
     borderBottomLeftRadius: 8,
@@ -652,8 +721,8 @@ const styles = StyleSheet.create({
   recognitionCornerBottomRight: {
     top: undefined,
     left: undefined,
-    right: width / 2 - width * 0.35,
-    bottom: height / 2 - width * 0.35,
+    right: width / 2 - width * 0.38,
+    bottom: height / 2 - width * 0.38,
     borderTopWidth: 0,
     borderLeftWidth: 0,
     borderRightWidth: 3,
@@ -699,6 +768,8 @@ const styles = StyleSheet.create({
     textShadowRadius: 3,
   },
   captureButtonContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 50,
     position: 'relative',
@@ -722,45 +793,47 @@ const styles = StyleSheet.create({
     borderRadius: 27,
     backgroundColor: '#FFF',
   },
-  historyButton: {
+  historyFloatingButton: {
     position: 'absolute',
-    left: 20,
-    bottom: 45,
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderRadius: 30,
+    right: 20,
+    bottom: 90,
+    borderRadius: 28,
     overflow: 'hidden',
+    zIndex: 1000,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.3,
+        shadowRadius: 4,
+      },
+      android: {
+        elevation: 4,
+      },
+    }),
   },
-  historyButtonBlur: {
-    flexDirection: 'row',
+  historyFloatingButtonContent: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    justifyContent: 'center',
     alignItems: 'center',
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    borderRadius: 30,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.3)',
   },
-  historyButtonText: {
-    fontSize: 14,
-    color: '#8B4513',
-    fontWeight: 'bold',
-    marginLeft: 6,
-  },
-  historyBadge: {
+  historyFloatingBadge: {
     position: 'absolute',
-    top: -5,
-    right: -5,
-    backgroundColor: '#8B4513',
+    top: 8,
+    right: 8,
+    backgroundColor: '#FFF',
     width: 18,
     height: 18,
     borderRadius: 9,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#FFF',
+    borderColor: '#8B4513',
   },
-  historyBadgeText: {
-    color: '#FFF',
+  historyFloatingBadgeText: {
+    color: '#8B4513',
     fontSize: 10,
     fontWeight: 'bold',
   },
@@ -802,7 +875,16 @@ const styles = StyleSheet.create({
     color: '#8B4513',
   },
   closeButton: {
-    padding: 8,
+    padding: 4,
+  },
+  closeButtonGradient: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(139,69,19,0.2)',
   },
   historyList: {
     flex: 1,
@@ -851,13 +933,23 @@ const styles = StyleSheet.create({
     textShadowOffset: { width: 1, height: 1 },
     textShadowRadius: 3,
   },
+  historyItemDetails: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 6,
+  },
+  historyItemDynastyContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
   historyItemDynasty: {
     fontSize: 14,
     color: '#F5EFE0',
-    marginBottom: 6,
+    marginLeft: 4,
     textShadowColor: 'rgba(0,0,0,0.7)',
     textShadowOffset: { width: 1, height: 1 },
-    textShadowRadius: 3,
+    textShadowRadius: 2,
   },
   historyItemDateContainer: {
     flexDirection: 'row',
@@ -890,6 +982,8 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(139,69,19,0.1)',
   },
   resultTitle: {
     fontSize: 20,
@@ -909,59 +1003,110 @@ const styles = StyleSheet.create({
     flex: 1,
     marginRight: 16,
   },
+  comparisonLabelContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
   comparisonLabel: {
     fontSize: 14,
     fontWeight: 'bold',
     color: '#8B4513',
-    marginBottom: 8,
+    marginLeft: 4,
   },
   comparisonImage: {
     width: '100%',
-    height: 200,
+    aspectRatio: 1,
     borderRadius: 16,
+    borderWidth: 2,
+    borderColor: 'rgba(139,69,19,0.2)',
   },
-  relicCard: {
-    flex: 1,
-    backgroundColor: '#FFF',
+  relicInfoCard: {
+    backgroundColor: 'rgba(255,255,255,0.9)',
     borderRadius: 16,
-    overflow: 'hidden',
-    elevation: 3,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-  },
-  relicImage: {
-    width: '100%',
-    height: 200,
-  },
-  relicInfo: {
     padding: 16,
+    marginVertical: 16,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+      },
+      android: {
+        elevation: 3,
+      },
+    }),
+  },
+  relicInfoHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
   },
   relicName: {
     fontSize: 22,
     fontWeight: 'bold',
     color: '#5D4037',
-    marginBottom: 8,
+    flex: 1,
+    marginRight: 10,
   },
-  relicDynasty: {
-    fontSize: 14,
-    color: '#8D6E63',
+  relicBadge: {
+    backgroundColor: '#8B4513',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 12,
+  },
+  relicBadgeText: {
+    color: '#FFF',
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
+  confidenceContainer: {
     marginBottom: 16,
   },
+  confidenceLabel: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#5D4037',
+    marginBottom: 8,
+  },
+  confidenceDetails: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
   confidenceBar: {
-    height: 8,
+    flex: 1,
+    height: 10,
     backgroundColor: '#E8E0D5',
-    borderRadius: 4,
+    borderRadius: 5,
     overflow: 'hidden',
+    marginRight: 10,
   },
   confidenceFill: {
     height: '100%',
-    backgroundColor: '#8B4513',
+    borderRadius: 5,
+  },
+  confidenceHighFill: {
+    backgroundColor: '#4CAF50',
+  },
+  confidenceMediumFill: {
+    backgroundColor: '#FFC107',
   },
   confidenceText: {
     fontSize: 14,
-    color: '#8D6E63',
+    fontWeight: 'bold',
+    color: '#5D4037',
+    minWidth: 40,
+    textAlign: 'right',
+  },
+  descriptionContainer: {
+    marginBottom: 20,
+  },
+  descriptionLabel: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#5D4037',
     marginBottom: 8,
   },
   relicDescription: {
@@ -977,11 +1122,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     flexDirection: 'row',
     justifyContent: 'center',
-    elevation: 3,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 3,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.2,
+        shadowRadius: 3,
+      },
+      android: {
+        elevation: 3,
+      },
+    }),
   },
   learnMoreButtonText: {
     fontSize: 16,

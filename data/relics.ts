@@ -4,12 +4,12 @@ import { Relic, Category, Dynasty, FilterOptions } from './types';
 export const relicsData: Relic[] = [
   {
     id: '101',
-    name: '青铜器·后母戊鼎',
+    name: '司母戊鼎',
     dynasty: '商代',
     category: '青铜器',
     color: '#CD7F32',
-    image: 'https://picsum.photos/id/866/800/600',
-    description: '后母戊鼎是中国商代晚期青铜器，是迄今为止中国出土的最大的商代青铜器。高133厘米，重832.84千克，为国家一级文物。',
+    image: '/images/simuwuding.png',
+    description: '司母戊鼎是中国商代晚期青铜器，是迄今为止中国出土的最大的商代青铜器。高133厘米，重832.84千克，为国家一级文物。',
     era: '公元前13世纪',
     location: '河南安阳',
     museum: '中国国家博物馆',
@@ -27,7 +27,7 @@ export const relicsData: Relic[] = [
     dynasty: '秦代',
     category: '陶器',
     color: '#B87333',
-    image: 'https://picsum.photos/id/338/800/600',
+    image: '/images/qinbingmayong.png',
     description: '兵马俑，即秦始皇兵马俑，亦简称秦兵马俑或秦俑，第一批全国重点文物保护单位，第一批中国世界遗产，位于今陕西省西安市临潼区秦始皇陵以东1.5千米处。',
     era: '公元前210年',
     location: '陕西西安',
@@ -45,7 +45,7 @@ export const relicsData: Relic[] = [
     dynasty: '魏晋至元代',
     category: '绘画',
     color: '#E34234',
-    image: 'https://picsum.photos/id/43/800/600',
+    image: '/images/mogaoku.png',
     description: '敦煌莫高窟始建于十六国的前秦时期，历经十六国、北朝、隋、唐、五代、西夏、元等历代的修建，有洞窟735个，壁画4.5万平方米、泥质彩塑2415尊。',
     era: '公元366年-1368年',
     location: '甘肃敦煌',
@@ -63,7 +63,7 @@ export const relicsData: Relic[] = [
     dynasty: '唐代',
     category: '陶器',
     color: '#B87333',
-    image: 'https://picsum.photos/id/24/800/600',
+    image: '/images/tangsancai.png',
     description: '唐三彩是盛行于唐代的一种低温釉陶器，主要用作陪葬品，以黄、绿、白三色为主，所以被称为"唐三彩"。',
     era: '公元618年-907年',
     location: '河南洛阳、陕西西安等地',
@@ -101,7 +101,7 @@ export const relicsData: Relic[] = [
     dynasty: '东汉',
     category: '青铜器',
     color: '#CD7F32',
-    image: 'https://picsum.photos/id/98/800/600',
+    image: '/images/matafeiyan.png',
     description: '马踏飞燕，又称"马超龙雀"或"铜奔马"，是中国汉代青铜器艺术的珍品，1969年出土于甘肃武威雷台汉墓。',
     era: '公元东汉',
     location: '甘肃武威',
@@ -119,7 +119,7 @@ export const relicsData: Relic[] = [
     dynasty: '北宋',
     category: '绘画',
     color: '#E34234',
-    image: 'https://picsum.photos/id/28/800/600',
+    image: '/images/qingmingshanghetu.png',
     description: '《清明上河图》是北宋画家张择端创作的一幅风俗画，生动描绘了北宋都城汴京（今河南开封）清明时节的繁荣景象。',
     era: '公元1085年-1145年',
     location: '原藏于宋徽宗内府',
@@ -137,7 +137,7 @@ export const relicsData: Relic[] = [
     dynasty: '元代',
     category: '绘画',
     color: '#E34234',
-    image: 'https://picsum.photos/id/42/800/600',
+    image: '/images/fuchunshanjutu.png',
     description: '《富春山居图》是元代画家黄公望创作的一幅山水画长卷，描绘了浙江富春江两岸的自然风光。',
     era: '公元1350年',
     location: '原藏于明代内府',
@@ -168,29 +168,29 @@ export const relicsData: Relic[] = [
     ],
     relatedRelics: ['101']
   },
-  {
-    id: '110',
-    name: '粉彩花卉纹瓷瓶',
-    dynasty: '清代',
-    category: '瓷器',
-    color: '#4682B4',
-    image: 'https://picsum.photos/id/112/800/600',
-    description: '清代康熙年间的粉彩瓷器，瓶身绘制精美花卉图案，代表了清代瓷器的高超工艺。',
-    era: '公元1662年-1722年',
-    location: '江西景德镇',
-    museum: '故宫博物院',
-    discoveryYear: '清代',
-    significance: [
-      '清代瓷器艺术的杰出代表',
-      '粉彩工艺的代表作品',
-      '展现了中国古代瓷器制作的精湛技艺'
-    ]
-  },
+  // {
+  //   id: '110',
+  //   name: '粉彩花卉纹瓷瓶',
+  //   dynasty: '清代',
+  //   category: '瓷器',
+  //   color: '#4682B4',
+  //   image: 'https://picsum.photos/id/112/800/600',
+  //   description: '清代康熙年间的粉彩瓷器，瓶身绘制精美花卉图案，代表了清代瓷器的高超工艺。',
+  //   era: '公元1662年-1722年',
+  //   location: '江西景德镇',
+  //   museum: '故宫博物院',
+  //   discoveryYear: '清代',
+  //   significance: [
+  //     '清代瓷器艺术的杰出代表',
+  //     '粉彩工艺的代表作品',
+  //     '展现了中国古代瓷器制作的精湛技艺'
+  //   ]
+  // },
 ];
 
 // 精选文物
 export const featuredRelics: Relic[] = [
-  relicsData[0], // 后母戊鼎
+  relicsData[4], // 勾践剑
   relicsData[1], // 秦始皇兵马俑
   relicsData[2], // 莫高窟壁画
 ];
