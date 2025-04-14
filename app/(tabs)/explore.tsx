@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { 
   StyleSheet, 
   View, 
@@ -7,7 +7,11 @@ import {
   TouchableOpacity, 
   Image,
   Dimensions,
-  ActivityIndicator
+  ActivityIndicator,
+  FlatList,
+  Animated,
+  NativeSyntheticEvent,
+  NativeScrollEvent
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -30,6 +34,13 @@ export default function ExploreScreen() {
   const [regions, setRegions] = useState<Region[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // --- 轮播相关状态和引用 ---
+  const [currentCarouselIndex, setCurrentCarouselIndex] = useState(0);
+  const scrollX = useRef(new Animated.Value(0)).current;
+  const carouselRef = useRef<FlatList<Relic>>(null);
+  const carouselInterval = useRef<NodeJS.Timeout | null>(null);
+  // --- 结束轮播相关 ---
 
   const loadData = async () => {
     try {
@@ -56,6 +67,67 @@ export default function ExploreScreen() {
   useEffect(() => {
     loadData();
   }, []);
+
+  // 自动轮播
+  useEffect(() => {
+    startCarouselTimer();
+    return () => clearCarouselTimer();
+  }, [currentCarouselIndex, featuredRelics]); // 依赖项保持不变
+
+  const startCarouselTimer = () => {
+    clearCarouselTimer();
+    if (featuredRelics.length > 1) { // 至少需要两项才能轮播
+      carouselInterval.current = setInterval(() => {
+        if (carouselRef.current) {
+          const nextIndex = (currentCarouselIndex + 1) % featuredRelics.length;
+          carouselRef.current.scrollToIndex({
+            index: nextIndex,
+            animated: true,
+          });
+          // 注意：不要在这里调用 setCurrentCarouselIndex，它会在 onMomentumScrollEnd 中更新
+        }
+      }, 5000); // 5秒切换
+    }
+  };
+
+  const clearCarouselTimer = () => {
+    if (carouselInterval.current) {
+      clearInterval(carouselInterval.current);
+      carouselInterval.current = null;
+    }
+  };
+
+  // 监听轮播滚动结束事件，手动滑动时更新 index
+  const handleMomentumScrollEnd = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const newIndex = Math.round(event.nativeEvent.contentOffset.x / width);
+    if (newIndex !== currentCarouselIndex) {
+        setCurrentCarouselIndex(newIndex);
+        startCarouselTimer(); // 手动滑动后重置计时器
+    }
+  };
+
+  // 渲染分页指示器
+  const renderPagination = () => (
+    <View style={styles.paginationContainer}>
+      {featuredRelics.map((_, index) => (
+        <Animated.View
+          key={`dot-${index}`}
+          style={[
+            styles.paginationDot,
+            {
+              opacity: scrollX.interpolate({
+                inputRange: [(index - 1) * width, index * width, (index + 1) * width],
+                outputRange: [0.3, 1, 0.3],
+                extrapolate: 'clamp',
+              }),
+              backgroundColor: COLORS.primary, // 使用主题色
+            },
+          ]}
+        />
+      ))}
+    </View>
+  );
+  // --- 结束轮播相关函数 ---
 
   // 渲染加载状态
   if (isLoading) {
@@ -106,37 +178,58 @@ export default function ExploreScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
-        {/* 推荐文物 */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>精选文物</Text>
-          <ScrollView 
-            horizontal 
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.horizontalScrollContent}
-          >
-            {featuredRelics.map(relic => (
-              <TouchableOpacity
-                key={relic.id}
-                style={styles.relicCard}
-                onPress={() => router.push(`/relic/${relic.id}` as any)}
-                activeOpacity={0.8}
-              >
-                <Image 
-                  source={getImageSource(relic.image)}
-                  style={styles.relicImage}
-                  resizeMode="cover"
-                />
-                <LinearGradient
-                  colors={['transparent', 'rgba(0,0,0,0.7)']}
-                  style={styles.relicGradient}
-                >
-                  <Text style={styles.relicName}>{relic.name}</Text>
-                  <Text style={styles.relicDynasty}>{relic.dynasty}</Text>
-                </LinearGradient>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
-        </View>
+        {/* 精选文物轮播 */}
+        {featuredRelics.length > 0 && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>精选文物</Text>
+            <View style={styles.carouselContainer}>
+              <FlatList
+                ref={carouselRef}
+                data={featuredRelics}
+                horizontal
+                pagingEnabled
+                showsHorizontalScrollIndicator={false}
+                onScroll={Animated.event(
+                  [{ nativeEvent: { contentOffset: { x: scrollX } } }],
+                  { useNativeDriver: false } // 动画使用 JS 驱动
+                )}
+                onMomentumScrollEnd={handleMomentumScrollEnd} // 处理手动滑动结束
+                keyExtractor={(item) => `featured-${item.id}`} // 确保 key 唯一
+                renderItem={({ item }) => (
+                  <TouchableOpacity
+                    activeOpacity={0.9}
+                    style={styles.carouselItem} // 使用轮播项样式
+                    onPress={() => router.push(`/relic/${item.id}` as any)}
+                    // 按下时暂停轮播，松开时恢复
+                    onPressIn={clearCarouselTimer}
+                    onPressOut={startCarouselTimer}
+                  >
+                    <Image 
+                      source={getImageSource(item.image)}
+                      style={styles.carouselImage} // 使用轮播图片样式
+                      resizeMode="cover"
+                    />
+                    <LinearGradient
+                      colors={['transparent', 'rgba(0,0,0,0.8)']} // 调整渐变效果
+                      style={styles.carouselGradient} // 使用轮播渐变样式
+                      start={{ x: 0, y: 0.5 }} // 调整渐变方向
+                      end={{ x: 0, y: 1 }}
+                    >
+                      <Text style={styles.carouselTitle}>{item.name}</Text>
+                      <Text style={styles.carouselSubtitle}>{item.dynasty}</Text>
+                    </LinearGradient>
+                  </TouchableOpacity>
+                )}
+                 // 添加snapToInterval以确保对齐
+                snapToInterval={width * 0.9} // 对齐间隔等于项目/容器宽度
+                decelerationRate="fast" // 加快减速
+                // 移除 contentContainerStyle 的 padding
+                // contentContainerStyle={styles.carouselFlatListContent}
+              />
+              {renderPagination()} 
+            </View>
+          </View>
+        )}
         
         {/* 热门故事 */}
         <View style={styles.section}>
@@ -260,37 +353,59 @@ const styles = StyleSheet.create({
     paddingLeft: 20,
     paddingRight: 10,
   },
-  relicCard: {
-    width: 180,
-    height: 220,
-    borderRadius: RADIUS.medium,
-    marginRight: 15,
-    overflow: 'hidden',
-    ...SHADOWS.medium,
+  carouselContainer: {
+    // 使容器居中并设置宽度
+    width: width * 0.9,
+    alignSelf: 'center', // 替代 marginHorizontal 计算
+    borderRadius: RADIUS.medium, // 给容器添加圆角
+    overflow: 'hidden', // 隐藏内部超出部分
+    // marginBottom: 25, // 已在 section 样式中处理
   },
-  relicImage: {
+  carouselItem: {
+    width: width * 0.9, // 项目宽度等于容器宽度
+    height: (width * 0.9) * 0.5, // 高度按比例调整
+    // borderRadius: RADIUS.medium, // 圆角由容器处理
+    // overflow: 'hidden', // 确保移除，避免双重裁剪
+  },
+  carouselImage: {
     width: '100%',
     height: '100%',
   },
-  relicGradient: {
+  carouselGradient: {
     position: 'absolute',
-    bottom: 0,
     left: 0,
     right: 0,
-    height: 80,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
+    bottom: 0,
+    height: '50%',
     justifyContent: 'flex-end',
+    paddingHorizontal: 12,
+    paddingBottom: 10,
   },
-  relicName: {
-    color: COLORS.white,
+  carouselTitle: {
     fontSize: 16,
     fontWeight: '600',
+    color: COLORS.white,
     marginBottom: 4,
   },
-  relicDynasty: {
-    color: 'rgba(255,255,255,0.8)',
+  carouselSubtitle: {
     fontSize: 12,
+    color: 'rgba(255,255,255,0.8)',
+  },
+  paginationContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    position: 'absolute',
+    bottom: 10,
+    left: 0,
+    right: 0,
+  },
+  paginationDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: COLORS.primary,
+    marginHorizontal: 4,
   },
   storiesContainer: {
     paddingHorizontal: 20,

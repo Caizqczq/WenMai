@@ -4,12 +4,10 @@
     "slug": "wenhua",
     "version": "1.0.0",
     "orientation": "default",
-    "icon": "./assets/images/icon.png",
     "scheme": "wenhua",
     "userInterfaceStyle": "automatic",
     "splash": {
-      "image": "./assets/images/splash-icon.png",
-      "resizeMode": "contain",
+      "image": "./assets/splash.png",
       "backgroundColor": "#F5EFE0"
     },
     "assetBundlePatterns": [
@@ -39,7 +37,6 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#F5EFE0"
       },
       "package": "com.wenhua.app",
@@ -49,13 +46,19 @@
         "CAMERA",
         "READ_EXTERNAL_STORAGE",
         "WRITE_EXTERNAL_STORAGE",
-        "MEDIA_LIBRARY"
+        "MEDIA_LIBRARY",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.ACCESS_MEDIA_LOCATION"
       ]
     },
     "web": {
       "bundler": "metro",
-      "output": "static",
-      "favicon": "./assets/images/favicon.png"
+      "output": "static"
     },
     "plugins": [
       "expo-router",
@@ -86,7 +89,13 @@
     },
     "newArchEnabled": true,
     "extra": {
-      "baiduMapAK": "Q8PGQJZ0llabSmb3OMnsx5HRobi4HdtZ"
+      "baiduMapAK": "Q8PGQJZ0llabSmb3OMnsx5HRobi4HdtZ",
+      "router": {
+        "origin": false
+      },
+      "eas": {
+        "projectId": "15bcbe3f-bf89-4396-81b6-7fca2fe6d7d9"
+      }
     },
     "description": "一款融合地域、人物和历史事件的文物类移动应用，通过交互式游戏体验让用户了解文物背后的历史故事。"
   }

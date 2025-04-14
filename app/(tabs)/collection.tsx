@@ -24,8 +24,9 @@ import { BlurView } from 'expo-blur';
 import { relicService } from '../../data/services';
 import { Relic } from '../../data/types';
 import LoadingIndicator from '../../components/ui/LoadingIndicator';
-import { COLORS } from '../../constants/Colors';
+import { COLORS, FONTS, SPACING, RADIUS, SHADOWS } from '../../constants/Colors';
 import { LinearGradient } from 'expo-linear-gradient';
+import { getImageSource } from '../../utils/imageUtils';
 
 const { width, height } = Dimensions.get('window');
 
@@ -198,7 +199,7 @@ export default function ARRecognitionScreen() {
         animationType="fade"
         onRequestClose={() => setShowResultModal(false)}
       >
-        <BlurView intensity={90} style={styles.modalContainer}>
+        <BlurView intensity={80} tint="dark" style={styles.modalContainer}>
           <View style={styles.resultContainer}>
             <View style={styles.resultHeader}>
               <Text style={styles.resultTitle}>文物识别结果</Text>
@@ -207,10 +208,10 @@ export default function ARRecognitionScreen() {
                 onPress={() => setShowResultModal(false)}
               >
                 <LinearGradient
-                  colors={['rgba(230,220,210,0.9)', 'rgba(210,200,180,0.9)']}
+                  colors={['rgba(255,255,255,0.2)', 'rgba(255,255,255,0.1)']} 
                   style={styles.closeButtonGradient}
                 >
-                  <Ionicons name="close" size={24} color="#8B4513" />
+                  <Ionicons name="close" size={20} color={COLORS.primary} />
                 </LinearGradient>
               </TouchableOpacity>
             </View>
@@ -219,35 +220,32 @@ export default function ARRecognitionScreen() {
               showsVerticalScrollIndicator={false}
               contentContainerStyle={styles.resultContent}
             >
-              <View style={styles.comparisonContainer}>
-                {/* 左侧展示识别的图片 */}
+              <View style={styles.comparisonContainerVertical}>
                 <View style={styles.capturedImageContainer}>
                   <View style={styles.comparisonLabelContainer}>
-                    <Ionicons name="camera-outline" size={16} color="#8B4513" />
+                    <Ionicons name="camera-outline" size={16} color={COLORS.primary} />
                     <Text style={styles.comparisonLabel}>您的照片</Text>
                   </View>
                   <Image 
                     source={{ uri: recognizedRelic.capturedImageUri }}
                     style={styles.comparisonImage}
-                    resizeMode="cover"
+                    resizeMode="contain"
                   />
                 </View>
                 
-                {/* 右侧展示匹配的文物图片 */}
                 <View style={styles.capturedImageContainer}>
                   <View style={styles.comparisonLabelContainer}>
-                    <Ionicons name="checkmark-circle-outline" size={16} color="#8B4513" />
+                    <Ionicons name="checkmark-circle-outline" size={16} color={COLORS.primary} />
                     <Text style={styles.comparisonLabel}>匹配文物</Text>
                   </View>
                   <Image 
-                    source={{ uri: recognizedRelic.image }}
+                    source={getImageSource(recognizedRelic.image)}
                     style={styles.comparisonImage}
-                    resizeMode="cover"
+                    resizeMode="contain"
                   />
                 </View>
               </View>
               
-              {/* 文物信息卡片 */}
               <View style={styles.relicInfoCard}>
                 <View style={styles.relicInfoHeader}>
                   <Text style={styles.relicName}>{recognizedRelic.name}</Text>
@@ -256,7 +254,6 @@ export default function ARRecognitionScreen() {
                   </View>
                 </View>
                 
-                {/* 相似度指示器 */}
                 <View style={styles.confidenceContainer}>
                   <Text style={styles.confidenceLabel}>
                     识别相似度
@@ -279,7 +276,7 @@ export default function ARRecognitionScreen() {
                 
                 <View style={styles.descriptionContainer}>
                   <Text style={styles.descriptionLabel}>文物简介</Text>
-                  <Text style={styles.relicDescription}>
+                  <Text style={styles.relicDescription} numberOfLines={5} ellipsizeMode="tail">
                     {recognizedRelic.description || "暂无详细描述"}
                   </Text>
                 </View>
@@ -287,9 +284,10 @@ export default function ARRecognitionScreen() {
                 <TouchableOpacity 
                   style={styles.learnMoreButton}
                   onPress={() => handleRelicPress(recognizedRelic.id)}
+                  activeOpacity={0.8} 
                 >
                   <Text style={styles.learnMoreButtonText}>查看详细信息</Text>
-                  <Ionicons name="arrow-forward" size={16} color="#fff" />
+                  <Ionicons name="arrow-forward" size={16} color={COLORS.white} />
                 </TouchableOpacity>
               </View>
             </ScrollView>
@@ -386,14 +384,7 @@ export default function ARRecognitionScreen() {
             </View>
             
             <View style={styles.recognitionFrameContainer}>
-              <View style={styles.recognitionCorner} />
-              <View style={[styles.recognitionCorner, styles.recognitionCornerTopRight]} />
-              <View style={[styles.recognitionCorner, styles.recognitionCornerBottomLeft]} />
-              <View style={[styles.recognitionCorner, styles.recognitionCornerBottomRight]} />
-              
-              <View style={styles.recognitionFrameGuide}>
-                <View style={styles.recognitionFrameInner} />
-              </View>
+              <View style={styles.recognitionFrameGuide} />
             
               {isRecognizing && (
                 <BlurView intensity={80} style={styles.recognizingOverlay}>
@@ -555,19 +546,17 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
-    padding: 16,
-    backgroundColor: 'transparent',
-    zIndex: 10,
+    flexDirection: 'row',
+    justifyContent: 'center',
     alignItems: 'center',
+    paddingHorizontal: 16,
+    position: 'relative',
   },
   headerTitle: {
+    color: '#FFF',
     fontSize: 22,
     fontWeight: 'bold',
-    color: '#FFF',
     textAlign: 'center',
-    textShadowColor: 'rgba(0,0,0,0.7)',
-    textShadowOffset: { width: 1, height: 1 },
-    textShadowRadius: 3,
   },
   loadingContainer: {
     flex: 1,
@@ -631,7 +620,7 @@ const styles = StyleSheet.create({
   },
   cameraContainer: {
     flex: 1,
-    overflow: 'hidden',
+    backgroundColor: '#000',
   },
   camera: {
     flex: 1,
@@ -639,18 +628,16 @@ const styles = StyleSheet.create({
   cameraOverlayGradient: {
     flex: 1,
     justifyContent: 'space-between',
-    backgroundColor: 'rgba(0,0,0,0.4)',
-    borderTopWidth: 40,
-    borderBottomWidth: 40,
-    borderColor: 'rgba(0,0,0,0.7)',
+    backgroundColor: 'transparent',
+    paddingTop: 40,
+    paddingBottom: 40,
   },
   cameraControls: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
     position: 'absolute',
     top: 70,
     right: 20,
-    flexDirection: 'column',
-    justifyContent: 'center',
-    alignItems: 'center',
     zIndex: 20,
   },
   controlButton: {
@@ -665,76 +652,23 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255,255,255,0.2)',
   },
   recognitionFrameContainer: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
+    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },
   recognitionFrameGuide: {
-    width: width * 0.75,
-    height: width * 0.75,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.3)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    overflow: 'hidden',
-  },
-  recognitionFrameInner: {
-    width: '100%',
-    height: '100%',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.2)',
-    borderStyle: 'dashed',
-    borderRadius: 8,
-  },
-  recognitionCorner: {
-    position: 'absolute',
-    top: height / 2 - width * 0.38,
-    left: width / 2 - width * 0.38,
-    width: 40,
-    height: 40,
-    borderTopWidth: 3,
-    borderLeftWidth: 3,
-    borderColor: '#FFF',
-    borderTopLeftRadius: 8,
-  },
-  recognitionCornerTopRight: {
-    left: undefined,
-    right: width / 2 - width * 0.38,
-    borderLeftWidth: 0,
-    borderRightWidth: 3,
-    borderTopRightRadius: 8,
-    borderTopLeftRadius: 0,
-  },
-  recognitionCornerBottomLeft: {
-    top: undefined,
-    bottom: height / 2 - width * 0.38,
-    borderTopWidth: 0,
-    borderBottomWidth: 3,
-    borderBottomLeftRadius: 8,
-    borderTopLeftRadius: 0,
-  },
-  recognitionCornerBottomRight: {
-    top: undefined,
-    left: undefined,
-    right: width / 2 - width * 0.38,
-    bottom: height / 2 - width * 0.38,
-    borderTopWidth: 0,
-    borderLeftWidth: 0,
-    borderRightWidth: 3,
-    borderBottomWidth: 3,
-    borderBottomRightRadius: 8,
-    borderTopLeftRadius: 0,
+    width: width * 0.7,
+    height: width * 0.7,
+    borderWidth: 2,
+    borderColor: 'rgba(255, 255, 255, 0.7)',
+    borderRadius: 20,
+    backgroundColor: 'transparent',
   },
   recognizingOverlay: {
     position: 'absolute',
     width: width * 0.7,
     height: width * 0.7,
-    borderRadius: 16,
+    borderRadius: 20,
     justifyContent: 'center',
     alignItems: 'center',
     overflow: 'hidden',
@@ -748,30 +682,27 @@ const styles = StyleSheet.create({
   },
   guideOverlay: {
     position: 'absolute',
-    width: width * 0.7,
-    justifyContent: 'center',
+    bottom: -50,
+    left: 0,
+    right: 0,
     alignItems: 'center',
-    top: width * 0.4,
   },
   guideText: {
-    color: '#FFF',
+    color: 'rgba(255, 255, 255, 0.9)',
     fontSize: 14,
     textAlign: 'center',
     fontWeight: '500',
-    backgroundColor: 'rgba(0,0,0,0.6)',
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 20,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    paddingHorizontal: 15,
+    paddingVertical: 5,
+    borderRadius: 15,
     overflow: 'hidden',
-    textShadowColor: 'rgba(0,0,0,0.7)',
-    textShadowOffset: { width: 1, height: 1 },
-    textShadowRadius: 3,
   },
   captureButtonContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 50,
+    marginBottom: 30,
     position: 'relative',
   },
   captureButton: {
@@ -841,9 +772,11 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'flex-end',
   },
-  modalContainer: {
+  modalContainer: { 
     flex: 1,
-    backgroundColor: 'transparent',
+    justifyContent: 'center',
+    alignItems: 'center',
+    // BlurView handles the background tint
   },
   modalContent: {
     borderTopLeftRadius: 20,
@@ -875,16 +808,19 @@ const styles = StyleSheet.create({
     color: '#8B4513',
   },
   closeButton: {
-    padding: 4,
+    position: 'absolute',
+    right: 20,
+    top: 20,
+    zIndex: 1,
   },
   closeButtonGradient: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 34, // Adjust size
+    height: 34,
+    borderRadius: 17,
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(139,69,19,0.2)',
+    // Use a subtle gradient or solid color
+    backgroundColor: 'rgba(0,0,0,0.08)', 
   },
   historyList: {
     flex: 1,
@@ -974,102 +910,101 @@ const styles = StyleSheet.create({
     color: '#D32F2F',
     fontWeight: '500',
   },
-  resultContainer: {
-    flex: 1,
+  resultContainer: { 
+    width: '90%',
+    maxHeight: '85%', // Limit modal height
+    backgroundColor: COLORS.white,
+    borderRadius: RADIUS.large, // More pronounced radius
+    overflow: 'hidden',
+    ...SHADOWS.large, // Use predefined large shadow
   },
   resultHeader: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'center',
     alignItems: 'center',
-    padding: 16,
+    paddingVertical: SPACING.medium,
+    paddingHorizontal: SPACING.large, // Ensure space for close button
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(139,69,19,0.1)',
+    borderBottomColor: COLORS.border,
+    backgroundColor: 'rgba(245, 239, 224, 0.7)', // Slightly more opaque background
+    position: 'relative',
   },
   resultTitle: {
-    fontSize: 20,
+    fontSize: 20, // Fixed font size
     fontWeight: 'bold',
-    color: '#8B4513',
+    color: COLORS.primary,
   },
   resultContent: {
-    padding: 16,
-    paddingBottom: 30,
+    padding: SPACING.medium,
+    paddingBottom: SPACING.large, // More bottom padding
   },
-  comparisonContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 16,
+  comparisonContainerVertical: {
+    marginBottom: SPACING.large, // Increased space below comparison section
   },
   capturedImageContainer: {
-    flex: 1,
-    marginRight: 16,
+    marginBottom: SPACING.medium, // Space between the two images
+    // alignItems: 'stretch', // Default behavior is fine
   },
   comparisonLabelContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: SPACING.small,
   },
   comparisonLabel: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: '#8B4513',
-    marginLeft: 4,
+    marginLeft: SPACING.small,
+    fontSize: 12, // Fixed font size (caption/small)
+    color: COLORS.textSecondary,
+    fontWeight: '500',
   },
   comparisonImage: {
-    width: '100%',
-    aspectRatio: 1,
-    borderRadius: 16,
-    borderWidth: 2,
-    borderColor: 'rgba(139,69,19,0.2)',
+    width: '100%', 
+    height: height * 0.3,
+    maxHeight: height * 0.35,
+    borderRadius: RADIUS.medium,
+    backgroundColor: COLORS.border,
+    resizeMode: 'contain',
   },
   relicInfoCard: {
-    backgroundColor: 'rgba(255,255,255,0.9)',
-    borderRadius: 16,
-    padding: 16,
-    marginVertical: 16,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-      },
-      android: {
-        elevation: 3,
-      },
-    }),
+    backgroundColor: 'rgba(245, 239, 224, 0.4)', // More subtle background
+    borderRadius: RADIUS.large,
+    padding: SPACING.medium,
+    // No margin bottom needed, ScrollView padding handles it
   },
   relicInfoHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
+    alignItems: 'flex-start', // Align top
+    marginBottom: SPACING.medium,
   },
   relicName: {
-    fontSize: 22,
+    fontSize: 20, // Fixed font size (h3)
     fontWeight: 'bold',
-    color: '#5D4037',
-    flex: 1,
-    marginRight: 10,
+    color: COLORS.text,
+    flex: 1, 
+    marginRight: SPACING.medium,
+    lineHeight: 20 * 1.3, // Adjust line height based on fixed size
   },
   relicBadge: {
-    backgroundColor: '#8B4513',
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 12,
+    backgroundColor: COLORS.primary,
+    borderRadius: RADIUS.round, // Use round
+    paddingHorizontal: SPACING.medium,
+    paddingVertical: SPACING.small,
+    marginTop: 4,
   },
   relicBadgeText: {
-    color: '#FFF',
-    fontSize: 12,
-    fontWeight: 'bold',
+    color: COLORS.white,
+    fontSize: 12, // Fixed font size (caption)
+    fontWeight: '600',
   },
   confidenceContainer: {
-    marginBottom: 16,
+    marginBottom: SPACING.medium,
   },
   confidenceLabel: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: '#5D4037',
-    marginBottom: 8,
+    fontSize: 12, // Fixed font size (caption)
+    color: COLORS.textSecondary,
+    marginBottom: SPACING.small / 2,
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
   },
   confidenceDetails: {
     flexDirection: 'row',
@@ -1077,67 +1012,54 @@ const styles = StyleSheet.create({
   },
   confidenceBar: {
     flex: 1,
-    height: 10,
-    backgroundColor: '#E8E0D5',
-    borderRadius: 5,
+    height: 8, 
+    backgroundColor: COLORS.border,
+    borderRadius: RADIUS.round, // Use round
     overflow: 'hidden',
-    marginRight: 10,
+    marginRight: SPACING.medium,
   },
   confidenceFill: {
     height: '100%',
-    borderRadius: 5,
+    borderRadius: RADIUS.round, // Use round
   },
-  confidenceHighFill: {
-    backgroundColor: '#4CAF50',
-  },
-  confidenceMediumFill: {
-    backgroundColor: '#FFC107',
-  },
+  confidenceHighFill: { backgroundColor: COLORS.success },
+  confidenceMediumFill: { backgroundColor: COLORS.warning },
   confidenceText: {
-    fontSize: 14,
+    fontSize: 14, // Fixed font size (body)
     fontWeight: 'bold',
-    color: '#5D4037',
+    color: COLORS.primary,
     minWidth: 40,
     textAlign: 'right',
   },
   descriptionContainer: {
-    marginBottom: 20,
+    marginBottom: SPACING.large,
   },
   descriptionLabel: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: '#5D4037',
-    marginBottom: 8,
+    fontSize: 12, // Fixed font size (caption)
+    color: COLORS.textSecondary,
+    marginBottom: SPACING.small / 2,
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
   },
   relicDescription: {
-    fontSize: 14,
-    lineHeight: 22,
-    color: '#5D4037',
+    fontSize: 14, // Fixed font size (body)
+    color: COLORS.text,
+    lineHeight: 14 * 1.6, // Adjust line height based on fixed size
   },
   learnMoreButton: {
-    backgroundColor: '#8B4513',
-    paddingVertical: 14,
-    paddingHorizontal: 24,
-    borderRadius: 30,
-    alignItems: 'center',
+    backgroundColor: COLORS.primary,
+    borderRadius: RADIUS.large,
+    paddingVertical: SPACING.medium,
     flexDirection: 'row',
     justifyContent: 'center',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.2,
-        shadowRadius: 3,
-      },
-      android: {
-        elevation: 3,
-      },
-    }),
+    alignItems: 'center',
+    ...SHADOWS.medium, // Use predefined medium shadow
+    marginTop: SPACING.small, // Add small margin top
   },
   learnMoreButtonText: {
-    fontSize: 16,
-    color: '#FFF',
+    color: COLORS.white,
+    fontSize: 15, // Fixed font size (body2/medium)
     fontWeight: 'bold',
-    marginRight: 8,
+    marginRight: SPACING.small,
   },
 }); 

@@ -93,25 +93,8 @@ const MapScreen = () => {
   const generateMapHtml = useMemo(() => {
     // 生成筛选后的文物点位的标记代码
     const markersCode = filteredRelicSites.map(site => {
-      // 获取自定义图标URL或本地资源
-      const iconSource = getMapIconUrl(site.id, site.type);
-      
-      // 处理图标URL - 如果是本地资源，则获取其URI
-      let iconUrl = '';
-      if (typeof iconSource === 'string') {
-        // 在线图标，直接使用URL
-        iconUrl = iconSource;
-      } else {
-        // 本地图片资源，获取URI
-        try {
-          const resolvedSource = Image.resolveAssetSource(iconSource);
-          iconUrl = resolvedSource.uri;
-        } catch (error) {
-          console.error('处理本地图标出错:', error);
-          // 出错使用默认图标
-          iconUrl = 'https://img.icons8.com/color/48/000000/marker.png';
-        }
-      }
+      // 获取图标URL                                                                                                    
+      const iconUrl = getMapIconUrl(site.id, site.type);
       
       return `
       // 创建标记 - ${site.name}
@@ -120,7 +103,7 @@ const MapScreen = () => {
         new BMap.Size(48, 48),  // 图标大小，调整为适中大小
         {
           imageSize: new BMap.Size(48, 48),  // 图片大小
-          anchor: new BMap.Size(16, 32)      // 锚点位置，底部中心
+          anchor: new BMap.Size(24, 48)      // 锚点位置，底部中心（修改为图标底部对齐）
         }
       );
       
@@ -297,7 +280,6 @@ const MapScreen = () => {
       <body>
         <div id="container"></div>
         <div id="status">加载中...</div>
-        <div id="mapTitle">博物馆地图</div>
         
         <script>
           function log(msg) {
@@ -580,7 +562,7 @@ const MapScreen = () => {
     }
     
     moveToPoint(userLocation.coords.longitude, userLocation.coords.latitude, 16);
-    addUserLocationMarker(userLocation.coords.longitude, userLocation.coords.latitude);
+    // addUserLocationMarker(userLocation.coords.longitude, userLocation.coords.latitude); // 注释掉这一行
   };
 
   return (

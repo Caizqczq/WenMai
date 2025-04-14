@@ -21,6 +21,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import { COLORS, FONTS, SPACING, RADIUS, SHADOWS } from '../constants/Colors';
+import {getImageSource} from '../utils/imageUtils';
 
 const { width, height } = Dimensions.get('window');
 
@@ -42,7 +43,7 @@ const mockRecognitionResults: RecognitionResult[] = [
     confidence: 0.92,
     dynasty: '商代',
     description: '后母戊鼎是中国商代晚期青铜器，是迄今为止中国出土的最大的商代青铜器。',
-    imageUrl: 'https://picsum.photos/id/866/800/600',
+    imageUrl: getImageSource("images/simuwuding.png"),
   },
   {
     id: '102',
@@ -50,7 +51,7 @@ const mockRecognitionResults: RecognitionResult[] = [
     confidence: 0.87,
     dynasty: '秦代',
     description: '秦始皇兵马俑是世界文化遗产，1974年在西安临潼区发现，是古代墓葬雕塑的一个类别。',
-    imageUrl: 'https://picsum.photos/id/338/800/600',
+    imageUrl: getImageSource("images/qinbingmayong.png"),
   },
   {
     id: '103',
@@ -58,7 +59,7 @@ const mockRecognitionResults: RecognitionResult[] = [
     confidence: 0.78,
     dynasty: '魏晋至元代',
     description: '敦煌莫高窟始建于十六国的前秦时期，形成巨大的规模，有洞窟735个，壁画4.5万平方米。',
-    imageUrl: 'https://picsum.photos/id/43/800/600',
+    imageUrl: getImageSource("images/matafeiyan.png"),
   }
 ];
 
@@ -300,7 +301,7 @@ export default function ScanScreen() {
                   onPress={() => viewRelicDetail(result.id)}
                 >
                   <Image 
-                    source={{uri: result.imageUrl}} 
+                    source={{uri: result.imageUrl}}
                     style={styles.resultImage} 
                   />
                   <View style={styles.resultInfo}>
