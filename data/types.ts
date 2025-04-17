@@ -62,6 +62,7 @@ export interface RelicSite {
   description?: string;
   imageUrl?: string;
   type?: 'museum' | 'site' | 'monument';
+  admission?: string;
 }
 
 // 故事对话选项

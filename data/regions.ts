@@ -164,9 +164,10 @@ export const relicSites: RelicSite[] = [
     longitude: 114.3425, 
     regionId: '7',
     relicIds: ['105'],
-    description: '收藏了大量楚文化文物，包括越王勾践剑等国宝级文物。',
+    description: '国家一级博物馆，馆藏丰富，尤以商周青铜器、楚秦汉漆木器与简牍、发掘自曾侯乙墓的整套编钟乐器和越王勾践剑等国宝级文物最为著名。是了解荆楚文化乃至中国古代文明的重要窗口。',
     imageUrl: '/images/hubei.png',
-    type: 'museum'
+    type: 'museum',
+    admission: '免费开放 (请提前预约)'
   },
   { 
     id: '110', 

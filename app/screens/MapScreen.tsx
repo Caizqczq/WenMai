@@ -10,7 +10,7 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
 // 导入地图图标工具
-import { getMapIconUrl } from '../../utils/mapIconUtils';
+import mapIconUtils from '../../utils/mapIconUtils';
 
 // 修改百度地图API密钥，直接使用字符串避免编码问题
 const BAIDU_MAP_API_KEY = "Q8PGQJZ0llabSmb3OMnsx5HRobi4HdtZ";
@@ -37,6 +37,7 @@ const MapScreen = () => {
   
   // 用户位置状态
   const [userLocation, setUserLocation] = useState<Location.LocationObject | null>(null);
+  const [markerIconUris, setMarkerIconUris] = useState<Record<string, string>>({});
 
   // 获取当前筛选后的点位
   const filteredRelicSites = useMemo(() => {
@@ -47,6 +48,32 @@ const MapScreen = () => {
     if (!selectedRegion) return museumSites;
     return museumSites.filter(site => site.regionId === selectedRegion);
   }, [relicSites, selectedRegion]);
+
+  // 新增 useEffect: 获取筛选后点位的图标 URI
+  useEffect(() => {
+    const fetchIconUris = async () => {
+      if (filteredRelicSites.length > 0) {
+        console.log('开始获取地图标记图标 URI...');
+        const uris: Record<string, string> = {};
+        // 使用 Promise.all 并行获取所有图标
+        await Promise.all(filteredRelicSites.map(async (site) => {
+          try {
+            // 调用异步函数获取图标 URI (可能是 URL 或 Data URI)
+            const uri = await mapIconUtils.getMapIconUrlAsync(site.id, site.type);
+            uris[site.id] = uri;
+          } catch (error) {
+            console.error(`获取点位 ${site.id} (${site.name}) 的图标失败:`, error);
+            // 可以设置一个默认或错误图标
+            uris[site.id] = mapIconUtils.DEFAULT_ICON; // 使用导入的默认图标
+          }
+        }));
+        setMarkerIconUris(uris);
+        console.log('地图标记图标 URI 获取完成:', Object.keys(uris).length, '个');
+      }
+    };
+
+    fetchIconUris();
+  }, [filteredRelicSites]); // 当筛选后的点位变化时重新获取图标
 
   // 添加数据加载逻辑
   useEffect(() => {
@@ -89,85 +116,88 @@ const MapScreen = () => {
     }
   }, [userLocation, isLoading, dataLoaded]);
 
-  // 生成地图HTML内容
+  // 生成地图HTML内容 - 现在依赖 markerIconUris
   const generateMapHtml = useMemo(() => {
-    // 生成筛选后的文物点位的标记代码
-    const markersCode = filteredRelicSites.map(site => {
-      // 获取图标URL                                                                                                    
-      const iconUrl = getMapIconUrl(site.id, site.type);
-      
-      return `
-      // 创建标记 - ${site.name}
-      var customIcon_${site.id} = new BMap.Icon(
-        "${iconUrl}", 
-        new BMap.Size(48, 48),  // 图标大小，调整为适中大小
-        {
-          imageSize: new BMap.Size(48, 48),  // 图片大小
-          anchor: new BMap.Size(24, 48)      // 锚点位置，底部中心（修改为图标底部对齐）
-        }
-      );
-      
-      // 创建自定义标记
-      var marker_${site.id} = new BMap.Marker(
-        new BMap.Point(${site.longitude}, ${site.latitude}),
-        {icon: customIcon_${site.id}}
-      );
-      
-      // 添加标记到地图
-      map.addOverlay(marker_${site.id});
-      
-      // 为标记添加悬停效果
-      marker_${site.id}.addEventListener('mouseover', function() {
-        this.setTop(true);
-        this.setZIndex(9999);
-      });
-      
-      marker_${site.id}.addEventListener('mouseout', function() {
-        this.setTop(false);
-        this.setZIndex(1);
-      });
-      
-      // 为标记创建信息窗口内容
-      var infoContent_${site.id} = \`
-        <div style="padding: 12px; max-width: 280px; font-family: Arial, sans-serif;">
-          <div style="font-weight: bold; font-size: 16px; color: #8B4513; margin-bottom: 10px; border-bottom: 1px solid #e0e0e0; padding-bottom: 8px;">${site.name}</div>
-          ${site.description ? `<div style="font-size: 14px; line-height: 1.5; margin-bottom: 10px; color: #333;">${site.description}</div>` : ''}
-          ${site.type ? `<div style="font-size: 12px; color: #666; margin-bottom: 8px;"><span style="background-color: #f0f0f0; padding: 2px 6px; border-radius: 10px; color: #8B4513;">${site.type === 'museum' ? '博物馆' : (site.type === 'site' ? '遗址' : '纪念碑')}</span></div>` : ''}
-          ${site.relicIds && site.relicIds.length > 0 ? 
-            `<div style="font-size: 13px; color: #666; margin-bottom: 10px;">收藏 <b>${site.relicIds.length}</b> 件文物</div>
-             <button 
-               onclick="window.ReactNativeWebView.postMessage(JSON.stringify({type: 'viewDetails', id: '${site.id}'}))" 
-               style="background-color: #8B4513; color: white; border: none; border-radius: 4px; padding: 8px 14px; margin-top: 6px; float: right; font-size: 14px; cursor: pointer;">
-               查看博物馆详情
-             </button>` 
-            : 
-            `<button 
-               onclick="window.ReactNativeWebView.postMessage(JSON.stringify({type: 'viewDetails', id: '${site.id}'}))" 
-               style="background-color: #8B4513; color: white; border: none; border-radius: 4px; padding: 8px 14px; margin-top: 6px; float: right; font-size: 14px; cursor: pointer;">
-               查看博物馆详情
-             </button>`
+    console.log('重新生成地图 HTML，图标 URI 数量:', Object.keys(markerIconUris).length);
+    // 只有当图标 URI 准备好后才生成标记代码
+    const markersCode = Object.keys(markerIconUris).length >= filteredRelicSites.length && filteredRelicSites.length > 0
+      ? filteredRelicSites.map(site => {
+        const iconUrl = markerIconUris[site.id]; // <--- 从 state 读取图标 URI
+
+        // 如果某个图标确实没加载成功，确保有后备
+        const finalIconUrl = iconUrl || mapIconUtils.DEFAULT_ICON;
+
+        return `
+        // 创建标记 - ${site.name}
+        var customIcon_${site.id} = new BMap.Icon(
+          "${finalIconUrl}", // <--- 使用获取到的 URI
+          new BMap.Size(48, 48),
+          {
+            imageSize: new BMap.Size(48, 48),
+            anchor: new BMap.Size(24, 48)
           }
-          <div style="clear: both;"></div>
-        </div>
-      \`;
-      
-      // 创建信息窗口对象
-      var infoWindow_${site.id} = new BMap.InfoWindow(infoContent_${site.id}, {
-        width: 280,
-        height: 0,
-        enableMessage: false
-      });
-      
-      // 添加点击事件
-      marker_${site.id}.addEventListener('click', function() {
-        map.openInfoWindow(infoWindow_${site.id}, new BMap.Point(${site.longitude}, ${site.latitude}));
-        window.ReactNativeWebView.postMessage(JSON.stringify({
-          type: 'markerClick', 
-          id: '${site.id}',
-          name: '${site.name}'
-        }));
-      });
-    `}).join('\n');
+        );
+
+        var marker_${site.id} = new BMap.Marker(
+          new BMap.Point(${site.longitude}, ${site.latitude}),
+          {icon: customIcon_${site.id}}
+        );
+
+        map.addOverlay(marker_${site.id});
+        
+        // 为标记添加悬停效果
+        marker_${site.id}.addEventListener('mouseover', function() {
+          this.setTop(true);
+          this.setZIndex(9999);
+        });
+        
+        marker_${site.id}.addEventListener('mouseout', function() {
+          this.setTop(false);
+          this.setZIndex(1);
+        });
+        
+        // 为标记创建信息窗口内容
+        var infoContent_${site.id} = \`
+          <div style="padding: 12px; max-width: 280px; font-family: Arial, sans-serif;">
+            <div style="font-weight: bold; font-size: 16px; color: #8B4513; margin-bottom: 10px; border-bottom: 1px solid #e0e0e0; padding-bottom: 8px;">${site.name}</div>
+            ${site.description ? `<div style="font-size: 14px; line-height: 1.5; margin-bottom: 10px; color: #333;">${site.description}</div>` : ''}
+            ${site.type ? `<div style="font-size: 12px; color: #666; margin-bottom: 8px;"><span style="background-color: #f0f0f0; padding: 2px 6px; border-radius: 10px; color: #8B4513;">${site.type === 'museum' ? '博物馆' : (site.type === 'site' ? '遗址' : '纪念碑')}</span></div>` : ''}
+            ${site.relicIds && site.relicIds.length > 0 ? 
+              `<div style="font-size: 13px; color: #666; margin-bottom: 10px;">收藏 <b>${site.relicIds.length}</b> 件文物</div>
+               <button 
+                 onclick="window.ReactNativeWebView.postMessage(JSON.stringify({type: 'viewDetails', id: '${site.id}'}))" 
+                 style="background-color: #8B4513; color: white; border: none; border-radius: 4px; padding: 8px 14px; margin-top: 6px; float: right; font-size: 14px; cursor: pointer;">
+                 查看博物馆详情
+               </button>` 
+              : 
+              `<button 
+                 onclick="window.ReactNativeWebView.postMessage(JSON.stringify({type: 'viewDetails', id: '${site.id}'}))" 
+                 style="background-color: #8B4513; color: white; border: none; border-radius: 4px; padding: 8px 14px; margin-top: 6px; float: right; font-size: 14px; cursor: pointer;">
+                 查看博物馆详情
+               </button>`
+            }
+            <div style="clear: both;"></div>
+          </div>
+        \`;
+        
+        // 创建信息窗口对象
+        var infoWindow_${site.id} = new BMap.InfoWindow(infoContent_${site.id}, {
+          width: 280,
+          height: 0,
+          enableMessage: false
+        });
+        
+        // 添加点击事件
+        marker_${site.id}.addEventListener('click', function() {
+          map.openInfoWindow(infoWindow_${site.id}, new BMap.Point(${site.longitude}, ${site.latitude}));
+          window.ReactNativeWebView.postMessage(JSON.stringify({
+            type: 'markerClick', 
+            id: '${site.id}',
+            name: '${site.name}'
+          }));
+        });
+      `}).join('\n')
+      : ''; // 如果图标未就绪或没有点位，则不生成标记代码
     
     // 确定地图中心点和缩放级别
     let defaultCenter, defaultZoom;
@@ -334,7 +364,7 @@ const MapScreen = () => {
       </body>
       </html>
     `;
-  }, [filteredRelicSites, regions, selectedRegion, userLocation]);
+  }, [filteredRelicSites, regions, selectedRegion, userLocation, markerIconUris, BAIDU_MAP_API_KEY]); // 依赖项更新
 
   // 处理WebView消息
   const handleMessage = (event: WebViewMessageEvent) => {

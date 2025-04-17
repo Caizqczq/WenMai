@@ -143,7 +143,10 @@ export default function ScanScreen() {
   };
   
   const viewRelicDetail = (relicId: string) => {
-    router.push(`/relic/${relicId}`);
+    // 忽略传入的 relicId，始终跳转到越王勾践剑 (ID '105')
+    const targetRelicId = '105';
+    console.log(`Scan result clicked, navigating to hardcoded relic ID: ${targetRelicId} (original ID was ${relicId})`);
+    router.push(`/relic/${targetRelicId}`);
   };
   
   if (!permission) {

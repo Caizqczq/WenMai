@@ -5,6 +5,8 @@
 
 import { getImageSource } from './imageUtils';
 import { Image } from 'react-native';
+import * as FileSystem from 'expo-file-system'; // 导入 expo-file-system
+import { Asset } from 'expo-asset'; // <--- 导入 Asset
 
 // 创建图标资源映射表
 const iconMap: Record<string, any> = {
@@ -64,84 +66,100 @@ const TYPE_ICON_MAP: Record<string, string> = {
 const DEFAULT_ICON = 'https://img.icons8.com/color/48/000000/marker.png';
 
 /**
- * 获取本地资源URI
- * @param localResource 本地资源
- * @param fallbackUrl 备用URL
- * @returns 资源URI
- */
-export const getLocalResourceUri = (localResource: any, fallbackUrl?: string) => {
-  try {
-    // 确保本地资源可用
-    if (localResource) {
-      return localResource;
-    }
-    // 如果本地资源不可用但有备用URL，使用备用URL
-    if (fallbackUrl && isValidUrl(fallbackUrl)) {
-      return { uri: fallbackUrl };
-    }
-  } catch (error) {
-    console.error('获取资源URI时出错:', error);
-    // 如果有备用URL，在出错时使用备用URL
-    if (fallbackUrl && isValidUrl(fallbackUrl)) {
-      return { uri: fallbackUrl };
-    }
-  }
-  // 如果都失败，返回默认图标
-  return DEFAULT_ICON;
-};
-
-/**
  * 检查URL是否有效
  * @param url 要检查的URL
  * @returns 是否为有效URL
  */
 const isValidUrl = (url: string): boolean => {
   try {
-    return url.startsWith('http://') || url.startsWith('https://');
+    // 检查是否为 http/https 或 data URI
+    return url.startsWith('http://') || url.startsWith('https://') || url.startsWith('data:image');
   } catch (e) {
     return false;
   }
 };
 
 /**
- * 获取地图图标URL
+ * 将本地图片资源转换为 Base64 Data URI
+ * @param localResource require() 返回的本地资源 ID
+ * @returns Promise<string | null> 返回 Data URI 或 null
+ */
+const convertLocalImageToBase64 = async (localResource: any): Promise<string | null> => {
+  const asset = Asset.fromModule(localResource);
+  const resourceId = typeof localResource === 'number' ? localResource : 'unknown';
+
+  try {
+    console.log(`[Asset Conversion Attempt] ID: ${resourceId}, Name: ${asset.name}, URI: ${asset.uri}, LocalURI: ${asset.localUri}, Downloaded: ${asset.downloaded}`);
+
+    // 确保资源已下载到本地缓存
+    // 在 Release 构建中，这会从 APK 包内复制到缓存目录
+    if (!asset.downloaded) {
+      console.log(`[Asset Conversion] Asset ${asset.name} not marked downloaded. Downloading...`);
+      await asset.downloadAsync();
+      console.log(`[Asset Conversion] Asset ${asset.name} download finished. New LocalURI: ${asset.localUri}`);
+    }
+
+    // 下载后，localUri 应该指向缓存中的文件
+    const uriToRead = asset.localUri;
+
+    if (uriToRead && uriToRead.startsWith('file://')) {
+      console.log(`[Asset Conversion] Reading from validated localUri: ${uriToRead}`);
+      const base64 = await FileSystem.readAsStringAsync(uriToRead, {
+        encoding: FileSystem.EncodingType.Base64,
+      });
+      const mimeType = asset.type === 'png' ? 'image/png' : 'image/jpeg';
+      console.log(`[Asset Conversion] Successfully read and encoded ${asset.name}.`);
+      return `data:${mimeType};base64,${base64}`;
+    } else {
+      console.error(`[Asset Conversion Error] Asset ${asset.name} (ID: ${resourceId}) - Invalid or missing localUri after potential download: ${uriToRead}. Asset details: ${JSON.stringify(asset)}`);
+    }
+  } catch (error) {
+    console.error(`[Asset Conversion Exception] Failed to convert local image (ID: ${resourceId}, Name: ${asset.name}):`, error);
+  }
+  return null;
+};
+
+/**
+ * 获取地图图标 URL 或 Data URI (异步)
  * @param siteId 点位ID
  * @param siteType 点位类型
- * @returns 图标资源
+ * @returns Promise<string> 图标的 URL 或 Base64 Data URI
  */
-export const getMapIconUrl = (siteId: string, siteType?: 'museum' | 'site' | 'monument') => {
+export const getMapIconUrlAsync = async (siteId: string, siteType?: 'museum' | 'site' | 'monument'): Promise<string> => {
   // 1. 首先尝试使用站点特定的图标
   if (siteId && SITE_ICON_MAP[siteId]) {
     const iconSource = SITE_ICON_MAP[siteId];
     if (typeof iconSource === 'string' && isValidUrl(iconSource)) {
-      // 在线URL直接返回
+      // 在线 URL 或已是 Data URI 直接返回
       return iconSource;
     } else if (typeof iconSource !== 'string') {
-      // 本地资源需要转换为数据URI
-      try {
-        // 使用Image.resolveAssetSource获取URI（兼容Android和iOS）
-        const resolvedSource = Image.resolveAssetSource(iconSource);
-        if (resolvedSource && resolvedSource.uri) {
-          return resolvedSource.uri;
-        }
-      } catch (error) {
-        console.error('解析本地图标资源失败:', error);
+      // 本地资源需要转换为 Base64 Data URI
+      console.log(`Converting local icon for site ${siteId}...`);
+      const dataUri = await convertLocalImageToBase64(iconSource);
+      if (dataUri) {
+        console.log(`Successfully converted icon for site ${siteId} to Data URI.`);
+        return dataUri; // 返回 Base64 Data URI
+      } else {
+        console.warn(`Failed to convert icon for site ${siteId}, falling back.`);
       }
     }
   }
-  
-  // 2. 如果没有站点特定图标，尝试使用类型图标
+
+  // 2. 如果没有站点特定图标或转换失败，尝试使用类型图标
   if (siteType && TYPE_ICON_MAP[siteType]) {
     const typeIconUrl = TYPE_ICON_MAP[siteType];
     if (isValidUrl(typeIconUrl)) {
+      console.log(`Using type icon for site ${siteId}: ${typeIconUrl}`);
       return typeIconUrl;
     }
   }
-  
+
   // 3. 最后使用默认图标
+  console.log(`Using default icon for site ${siteId}.`);
   return DEFAULT_ICON;
 };
 
 export default {
-  getMapIconUrl
+  getMapIconUrlAsync,
+  DEFAULT_ICON
 }; 

@@ -237,10 +237,16 @@ export default function MuseumScreen() {
                 <View style={[styles.guideIcon, { backgroundColor: 'rgba(155, 89, 182, 0.2)' }]}>
                   <Ionicons name="ticket-outline" size={22} color="#9b59b6" />
                 </View>
-                <View>
+                <View style={{ flex: 1 }}>
                   <Text style={styles.guideLabel}>门票信息</Text>
-                  <Text style={styles.guideText}>成人票 ¥60</Text>
-                  <Text style={styles.guideSubText}>学生票 ¥30</Text>
+                  {museum.admission ? (
+                    <Text style={styles.guideText}>{museum.admission}</Text>
+                  ) : (
+                    <>
+                      <Text style={styles.guideText}>成人票 ¥60</Text>
+                      <Text style={styles.guideSubText}>学生票 ¥30</Text>
+                    </>
+                  )}
                 </View>
               </View>
             </View>

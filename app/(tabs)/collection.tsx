@@ -129,14 +129,21 @@ export default function ARRecognitionScreen() {
       
       // 模拟识别延迟
       setTimeout(() => {
-        // 随机选择一个文物作为"识别结果"
-        const recognizedItem = relics[Math.floor(Math.random() * relics.length)];
+        // 不再随机选择，始终查找越王勾践剑 (ID '105')
+        const recognizedItem = relics.find(r => r.id === '105');
+        
+        if (!recognizedItem) {
+          console.error("错误：未能从加载的数据中找到 ID 为 '105' 的越王勾践剑！");
+          setIsRecognizing(false);
+          Alert.alert("错误", "无法找到目标文物数据。");
+          return;
+        }
         
         // 保存识别结果和图片URI
         setRecognizedRelic({
           ...recognizedItem,
           capturedImageUri: processedImage.uri,
-          confidence: Math.random() * 0.3 + 0.7 // 生成0.7-1.0之间的随机置信度
+          confidence: 0.99 // 可以设置一个固定的高置信度
         });
         
         // 添加到最近识别列表
@@ -144,7 +151,7 @@ export default function ARRecognitionScreen() {
           const updated = [
             {
               id: Date.now().toString(),
-              relicId: recognizedItem.id,
+              relicId: recognizedItem.id, // 这里是 '105'
               name: recognizedItem.name,
               dynasty: recognizedItem.dynasty,
               recognizedAt: new Date().toISOString().split('T')[0],
@@ -152,7 +159,6 @@ export default function ARRecognitionScreen() {
             },
             ...prev
           ];
-          // 只保留最近5个
           return updated.slice(0, 5);
         });
         
@@ -177,7 +183,10 @@ export default function ARRecognitionScreen() {
   const handleRelicPress = (relicId: string) => {
     setShowResultModal(false);
     setShowHistoryModal(false);
-    router.push(`/relic/${relicId}` as any);
+    // 忽略传入的 relicId，始终跳转到越王勾践剑 (ID '105')
+    const targetRelicId = '105';
+    console.log(`Handling relic press, navigating to hardcoded ID: ${targetRelicId} (original ID was ${relicId})`);
+    router.push(`/relic/${targetRelicId}` as any);
   };
   
   const toggleCameraType = () => {
