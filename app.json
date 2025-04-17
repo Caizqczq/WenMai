@@ -1,13 +1,15 @@
 {
   "expo": {
-    "name": "文脉",
-    "slug": "wenhua",
+    "name": "物语",
+    "slug": "wuyu",
     "version": "1.0.0",
     "orientation": "default",
-    "scheme": "wenhua",
+    "icon": "./assets/images/app_icon.png",
+    "scheme": "wuyu",
     "userInterfaceStyle": "automatic",
     "splash": {
       "image": "./assets/splash.png",
+      "resizeMode": "cover",
       "backgroundColor": "#F5EFE0"
     },
     "assetBundlePatterns": [
@@ -15,7 +17,7 @@
     ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.wenhua.app",
+      "bundleIdentifier": "com.wuyu.app",
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "我们需要获取您的位置以便在地图上显示您当前的位置",
         "NSLocationAlwaysAndWhenInUseUsageDescription": "我们需要获取您的位置以便在地图上显示您当前的位置",
@@ -37,9 +39,10 @@
     },
     "android": {
       "adaptiveIcon": {
+        "foregroundImage": "./assets/images/adaptive_icon_foreground.png",
         "backgroundColor": "#F5EFE0"
       },
-      "package": "com.wenhua.app",
+      "package": "com.wuyu.app",
       "permissions": [
         "ACCESS_FINE_LOCATION",
         "ACCESS_COARSE_LOCATION",
@@ -58,7 +61,8 @@
     },
     "web": {
       "bundler": "metro",
-      "output": "static"
+      "output": "static",
+      "favicon": "./assets/images/favicon.png"
     },
     "plugins": [
       "expo-router",
@@ -66,14 +70,14 @@
       [
         "expo-camera",
         {
-          "cameraPermission": "允许\"文脉\"使用您的相机以识别文物。"
+          "cameraPermission": "允许\"物语\"使用您的相机以识别文物。"
         }
       ],
       [
         "expo-media-library",
         {
-          "photosPermission": "允许\"文脉\"访问您的相册以保存识别的文物照片。",
-          "savePhotosPermission": "允许\"文脉\"保存照片到您的相册。",
+          "photosPermission": "允许\"物语\"访问您的相册以保存识别的文物照片。",
+          "savePhotosPermission": "允许\"物语\"保存照片到您的相册。",
           "isAccessMediaLocationEnabled": true
         }
       ],
