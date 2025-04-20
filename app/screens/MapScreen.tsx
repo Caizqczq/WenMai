@@ -118,78 +118,98 @@ const MapScreen = () => {
 
   // 生成地图HTML内容 - 现在依赖 markerIconUris
   const generateMapHtml = useMemo(() => {
-    console.log('重新生成地图 HTML，图标 URI 数量:', Object.keys(markerIconUris).length);
-    // 只有当图标 URI 准备好后才生成标记代码
-    const markersCode = Object.keys(markerIconUris).length >= filteredRelicSites.length && filteredRelicSites.length > 0
-      ? filteredRelicSites.map(site => {
-        const iconUrl = markerIconUris[site.id]; // <--- 从 state 读取图标 URI
-
-        // 如果某个图标确实没加载成功，确保有后备
-        const finalIconUrl = iconUrl || mapIconUtils.DEFAULT_ICON;
-
+    console.log('重新生成地图 HTML，点位数量:', filteredRelicSites.length);
+    
+    // 按区域收集点位，用于高亮城市/区域
+    const regionsWithMuseums = new Set<string>();
+    filteredRelicSites.forEach(site => {
+      if (site.regionId) {
+        regionsWithMuseums.add(site.regionId);
+      }
+    });
+    
+    // 获取区域名称映射
+    const regionIdToName: Record<string, string> = {};
+    regions.forEach(region => {
+      regionIdToName[region.id] = region.name;
+    });
+    
+    // 创建文字标记代码
+    const markersCode = filteredRelicSites.length > 0
+      ? filteredRelicSites.map((site, index) => {
+        // 根据博物馆中藏品数量调整字体大小和权重
+        const hasRelics = site.relicIds && Array.isArray(site.relicIds) && site.relicIds.length > 0;
+        const relicCount = hasRelics ? site.relicIds!.length : 0;
+        const fontSize = relicCount > 50 ? 14 : relicCount > 20 ? 13 : 12;
+        const fontWeight = relicCount > 30 ? 'bold' : 'normal';
+        
+        // 根据博物馆重要性设置不同的样式
+        const isImportant = relicCount > 30;
+        
         return `
-        // 创建标记 - ${site.name}
-        var customIcon_${site.id} = new BMap.Icon(
-          "${finalIconUrl}", // <--- 使用获取到的 URI
-          new BMap.Size(48, 48),
+        // 创建文字标记 - ${site.name}
+        var label_${site.id} = new BMap.Label("${site.name}", {
+          position: new BMap.Point(${site.longitude}, ${site.latitude}),
+          offset: new BMap.Size(-50, -15)
+        });
+        
+        // 设置文字标记样式
+        label_${site.id}.setStyle({
+          color: "${isImportant ? '#8B4513' : '#555555'}",
+          fontSize: "${fontSize}px",
+          fontWeight: "${fontWeight}",
+          border: "1px solid ${isImportant ? '#D2B48C' : '#E4D5B7'}",
+          padding: "${isImportant ? '5px 10px' : '4px 8px'}",
+          borderRadius: "10px",
+          backgroundColor: "rgba(255, 255, 255, ${isImportant ? 0.95 : 0.9})",
+          boxShadow: "${isImportant ? '0 3px 6px rgba(0,0,0,0.15)' : '0 2px 4px rgba(0,0,0,0.1)'}",
+          zIndex: ${isImportant ? 9999 : 9000}
+        });
+        
+        map.addOverlay(label_${site.id});
+        
+        // 为重要博物馆添加黄色圆点标记
+        ${isImportant ? `
+        var circle_${site.id} = new BMap.Circle(
+          new BMap.Point(${site.longitude}, ${site.latitude}), 
+          1000, 
           {
-            imageSize: new BMap.Size(48, 48),
-            anchor: new BMap.Size(24, 48)
+            strokeColor: "#FF8C00",
+            strokeWeight: 2,
+            strokeOpacity: 0.8,
+            fillColor: "#FFD700",
+            fillOpacity: 0.3
           }
         );
-
-        var marker_${site.id} = new BMap.Marker(
-          new BMap.Point(${site.longitude}, ${site.latitude}),
-          {icon: customIcon_${site.id}}
-        );
-
-        map.addOverlay(marker_${site.id});
+        map.addOverlay(circle_${site.id});
+        ` : ''}
         
-        // 为标记添加悬停效果
-        marker_${site.id}.addEventListener('mouseover', function() {
-          this.setTop(true);
-          this.setZIndex(9999);
-        });
-        
-        marker_${site.id}.addEventListener('mouseout', function() {
-          this.setTop(false);
-          this.setZIndex(1);
-        });
-        
-        // 为标记创建信息窗口内容
-        var infoContent_${site.id} = \`
-          <div style="padding: 12px; max-width: 280px; font-family: Arial, sans-serif;">
-            <div style="font-weight: bold; font-size: 16px; color: #8B4513; margin-bottom: 10px; border-bottom: 1px solid #e0e0e0; padding-bottom: 8px;">${site.name}</div>
-            ${site.description ? `<div style="font-size: 14px; line-height: 1.5; margin-bottom: 10px; color: #333;">${site.description}</div>` : ''}
-            ${site.type ? `<div style="font-size: 12px; color: #666; margin-bottom: 8px;"><span style="background-color: #f0f0f0; padding: 2px 6px; border-radius: 10px; color: #8B4513;">${site.type === 'museum' ? '博物馆' : (site.type === 'site' ? '遗址' : '纪念碑')}</span></div>` : ''}
-            ${site.relicIds && site.relicIds.length > 0 ? 
-              `<div style="font-size: 13px; color: #666; margin-bottom: 10px;">收藏 <b>${site.relicIds.length}</b> 件文物</div>
-               <button 
-                 onclick="window.ReactNativeWebView.postMessage(JSON.stringify({type: 'viewDetails', id: '${site.id}'}))" 
-                 style="background-color: #8B4513; color: white; border: none; border-radius: 4px; padding: 8px 14px; margin-top: 6px; float: right; font-size: 14px; cursor: pointer;">
-                 查看博物馆详情
-               </button>` 
-              : 
-              `<button 
-                 onclick="window.ReactNativeWebView.postMessage(JSON.stringify({type: 'viewDetails', id: '${site.id}'}))" 
-                 style="background-color: #8B4513; color: white; border: none; border-radius: 4px; padding: 8px 14px; margin-top: 6px; float: right; font-size: 14px; cursor: pointer;">
-                 查看博物馆详情
-               </button>`
-            }
-            <div style="clear: both;"></div>
-          </div>
-        \`;
-        
-        // 创建信息窗口对象
-        var infoWindow_${site.id} = new BMap.InfoWindow(infoContent_${site.id}, {
-          width: 280,
-          height: 0,
-          enableMessage: false
-        });
-        
-        // 添加点击事件
-        marker_${site.id}.addEventListener('click', function() {
-          map.openInfoWindow(infoWindow_${site.id}, new BMap.Point(${site.longitude}, ${site.latitude}));
+        // 为标记添加点击事件
+        label_${site.id}.addEventListener('click', function() {
+          // 创建自定义信息窗口内容
+          var infoContent = \`
+            <div style="padding: 15px; max-width: 300px; font-family: 'Microsoft YaHei', Arial, sans-serif; box-shadow: 0 2px 8px rgba(0,0,0,0.1); border-radius: 6px;">
+              <div style="font-weight: bold; font-size: 16px; color: #8B4513; margin-bottom: 12px; border-bottom: 1px solid #e0e0e0; padding-bottom: 10px;">${site.name}</div>
+              \${${site.description ? `"<div style='font-size: 14px; line-height: 1.6; margin-bottom: 12px; color: #333;'>${site.description}</div>"` : "''"}}
+              \${${site.type ? `"<div style='font-size: 12px; color: #666; margin-bottom: 10px;'><span style='background-color: #f5f0e6; padding: 3px 8px; border-radius: 12px; color: #8B4513;'>${site.type === 'museum' ? '博物馆' : (site.type === 'site' ? '遗址' : '纪念碑')}</span></div>"` : "''"}}
+              \${${site.relicIds && site.relicIds.length > 0 ? 
+                `"<div style='font-size: 13px; color: #666; margin-bottom: 12px;'>收藏 <b>${site.relicIds.length}</b> 件文物</div><button onclick=\\"window.ReactNativeWebView.postMessage(JSON.stringify({type: 'viewDetails', id: '${site.id}'}));\\" style='background-color: #8B4513; color: white; border: none; border-radius: 20px; padding: 8px 16px; margin-top: 8px; float: right; font-size: 14px; cursor: pointer; box-shadow: 0 2px 4px rgba(139,69,19,0.2);'>查看博物馆详情</button>"` 
+                : 
+                `"<button onclick=\\"window.ReactNativeWebView.postMessage(JSON.stringify({type: 'viewDetails', id: '${site.id}'}));\\" style='background-color: #8B4513; color: white; border: none; border-radius: 20px; padding: 8px 16px; margin-top: 8px; float: right; font-size: 14px; cursor: pointer; box-shadow: 0 2px 4px rgba(139,69,19,0.2);'>查看博物馆详情</button>"`
+              }}
+              <div style="clear: both;"></div>
+            </div>
+          \`;
+          
+          var infoWindow = new BMap.InfoWindow(infoContent, {
+            width: 300,
+            height: 0,
+            enableMessage: false,
+            borderColor: "#f5f0e6",
+            padding: 0
+          });
+          
+          map.openInfoWindow(infoWindow, new BMap.Point(${site.longitude}, ${site.latitude}));
           window.ReactNativeWebView.postMessage(JSON.stringify({
             type: 'markerClick', 
             id: '${site.id}',
@@ -197,7 +217,77 @@ const MapScreen = () => {
           }));
         });
       `}).join('\n')
-      : ''; // 如果图标未就绪或没有点位，则不生成标记代码
+      : ''; // 如果没有点位，则不生成标记代码
+    
+    // 高亮区域代码
+    const highlightRegionsCode = regionsWithMuseums.size > 0 ? `
+      // 高亮有博物馆的区域 - 使用简化方法
+      var highlightTimer = setTimeout(function() {
+        // 确保地图已经完全加载
+        if (!map || typeof map.getZoom !== 'function') {
+          console.log('地图实例未就绪，延迟执行高亮代码');
+          clearTimeout(highlightTimer);
+          setTimeout(arguments.callee, 1000);
+          return;
+        }
+
+        // 定义高亮区域的通用样式
+        var highlightPolygonStyle = {
+          strokeColor: "#FF8C00",
+          strokeWeight: 2,
+          strokeOpacity: 0.8,
+          fillColor: "#FFD700",
+          fillOpacity: 0.3
+        };
+        
+        // 已创建高亮区域的城市集合
+        var highlightedCities = {};
+        
+        // 为每个博物馆创建一个高亮圆圈
+        ${filteredRelicSites.map(site => `
+          // 创建唯一标识，避免重复创建高亮区域
+          var cityKey = "${site.name.replace(/博物馆|纪念馆|展览馆/g, '')}";
+          
+          // 如果该城市还没有高亮，则创建一个高亮圆圈
+          if (!highlightedCities[cityKey]) {
+            console.log("创建城市高亮:", cityKey);
+            
+            // 创建城市高亮圆圈
+            var cityCircle = new BMap.Circle(
+              new BMap.Point(${site.longitude}, ${site.latitude}),
+              25000, // 25公里半径，覆盖城市主要区域
+              {
+                strokeColor: "#FF8C00",
+                strokeWeight: 2,
+                strokeOpacity: 0.8,
+                fillColor: "#FFD700",
+                fillOpacity: 0.2
+              }
+            );
+            map.addOverlay(cityCircle);
+            
+            // 如果是重要博物馆，添加城市名称标签
+            ${(site.relicIds && site.relicIds.length > 30) ? `
+            var cityLabel = new BMap.Label(cityKey, {
+              position: new BMap.Point(${site.longitude - 0.05}, ${site.latitude + 0.02}),
+              offset: new BMap.Size(0, 0)
+            });
+            cityLabel.setStyle({
+              color: "#FF8C00",
+              fontSize: "16px",
+              fontWeight: "bold",
+              border: "none",
+              backgroundColor: "transparent"
+            });
+            map.addOverlay(cityLabel);
+            ` : ''}
+            
+            // 标记该城市已高亮
+            highlightedCities[cityKey] = true;
+          }
+        `).join('\n')}
+      }, 1500);
+    ` : '';
     
     // 确定地图中心点和缩放级别
     let defaultCenter, defaultZoom;
@@ -226,17 +316,17 @@ const MapScreen = () => {
     const userLocationCode = userLocation ? `
       // 添加用户位置标记
       var userIcon = new BMap.Icon(
-        "https://api.map.baidu.com/images/geolocation-control/position-icon-14x14.png", 
-        new BMap.Size(28, 28),
+        "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23ffffff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='10' fill='%232196F3'/%3E%3Ccircle cx='12' cy='12' r='3' fill='white'/%3E%3C/svg%3E", 
+        new BMap.Size(36, 36),
         {
-          imageSize: new BMap.Size(14, 14),
-          anchor: new BMap.Size(7, 7)
+          imageSize: new BMap.Size(24, 24),
+          anchor: new BMap.Size(12, 12)
         }
       );
       
       var userPoint = new BMap.Point(${userLocation.coords.longitude}, ${userLocation.coords.latitude});
       
-      // 添加一个更明显的位置标记
+      // 添加一个更美观的位置标记
       var userMarker = new BMap.Marker(userPoint, {
         icon: userIcon,
         enableMassClear: false
@@ -245,16 +335,56 @@ const MapScreen = () => {
       
       // 添加位置精度圆圈
       var circle = new BMap.Circle(userPoint, 100, {
-        strokeColor: "rgba(24, 144, 255, 0.5)",
-        strokeWeight: 1,
-        strokeOpacity: 0.5,
-        fillColor: "rgba(24, 144, 255, 0.2)",
-        fillOpacity: 0.3
+        strokeColor: "rgba(33, 150, 243, 0.6)",
+        strokeWeight: 2,
+        strokeOpacity: 0.8,
+        fillColor: "rgba(33, 150, 243, 0.2)",
+        fillOpacity: 0.4
       });
       map.addOverlay(circle);
       
+      // 添加脉动动画效果
+      var pulse = new BMap.Circle(userPoint, 15, {
+        strokeColor: "rgba(33, 150, 243, 0.6)",
+        strokeWeight: 2,
+        strokeOpacity: 0.8,
+        fillColor: "rgba(33, 150, 243, 0.4)",
+        fillOpacity: 0.4
+      });
+      map.addOverlay(pulse);
+      
+      // 实现脉动效果
+      var pulsate = function() {
+        var currentRadius = 15;
+        var maxRadius = 50;
+        var timer = setInterval(function() {
+          currentRadius += 2;
+          pulse.setRadius(currentRadius);
+          if (currentRadius >= maxRadius) {
+            clearInterval(timer);
+            map.removeOverlay(pulse);
+            setTimeout(pulsate, 100);
+          }
+        }, 50);
+      };
+      pulsate();
+      
       // 为用户位置添加信息窗口
-      var userInfoWindow = new BMap.InfoWindow("<div style='padding: 5px; text-align: center;'>当前位置</div>");
+      var userInfoWindow = new BMap.InfoWindow(
+        "<div style='padding: 10px; text-align: center; font-family: Microsoft YaHei, sans-serif;'>" + 
+        "<div style='font-weight: bold; margin-bottom: 5px;'>当前位置</div>" +
+        "<div style='font-size: 12px; color: #666;'>经度: " + ${userLocation.coords.longitude}.toFixed(6) + "</div>" +
+        "<div style='font-size: 12px; color: #666;'>纬度: " + ${userLocation.coords.latitude}.toFixed(6) + "</div>" +
+        "</div>",
+        {
+          width: 180,
+          height: 0,
+          enableMessage: false,
+          borderColor: "#f5f0e6",
+          padding: 0
+        }
+      );
+      
       userMarker.addEventListener('click', function() {
         map.openInfoWindow(userInfoWindow, userPoint);
       });
@@ -274,6 +404,7 @@ const MapScreen = () => {
             height: 100%;
             width: 100%;
             overflow: hidden;
+            font-family: 'Microsoft YaHei', Arial, sans-serif;
           }
           #container {
             height: 100%;
@@ -304,29 +435,32 @@ const MapScreen = () => {
             z-index: 9999;
             box-shadow: 0 2px 5px rgba(0,0,0,0.2);
           }
+          /* 美化地图控件 */
+          .BMap_stdMpZoom {
+            border-radius: 4px;
+            overflow: hidden;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+          }
+          .BMap_stdMpZoomBtn {
+            background-color: white !important;
+          }
+          .BMap_stdMpZoomBtn:hover {
+            background-color: #f5f0e6 !important;
+          }
+          .BMap_scaleCtrl {
+            background-color: rgba(255,255,255,0.8) !important;
+            border-radius: 2px;
+            padding: 2px;
+          }
         </style>
         <script type="text/javascript" src="https://api.map.baidu.com/api?v=3.0&ak=${BAIDU_MAP_API_KEY}"></script>
       </head>
       <body>
         <div id="container"></div>
-        <div id="status">加载中...</div>
         
         <script>
           function log(msg) {
             console.log(msg);
-            var statusEl = document.getElementById('status');
-            statusEl.innerText = msg;
-            
-            // 只在加载或错误时显示状态
-            if (msg.includes('错误') || msg.includes('加载中') || msg.includes('初始化')) {
-              statusEl.style.display = 'block';
-            } else {
-              // 3秒后自动隐藏成功消息
-              setTimeout(function() {
-                statusEl.style.display = 'none';
-              }, 3000);
-            }
-            
             try {
               window.ReactNativeWebView.postMessage('LOG:' + msg);
             } catch(e) {}
@@ -335,17 +469,152 @@ const MapScreen = () => {
           function initMap() {
             try {
               log('初始化地图...');
-              var map = new BMap.Map('container');
+              var map = new BMap.Map('container', {
+                enableMapClick: true // 允许地图点击
+              });
               window.map = map; // 保存全局引用以便后续注入脚本使用
               var point = new BMap.Point(${defaultCenter});
               map.centerAndZoom(point, ${defaultZoom});
-              map.enableScrollWheelZoom();
-              map.addControl(new BMap.NavigationControl());
-              map.addControl(new BMap.ScaleControl());
+              
+              // 缩放限制设置 - 允许捏合缩放但限制最大级别
+              var minZoom = 4;  // 最小缩放级别
+              var maxZoom = 7;  // 最大缩放级别
+              
+              // 设置缩放级别限制
+              map.setMinZoom(minZoom);
+              map.setMaxZoom(maxZoom);
+              
+              // 允许所有缩放功能
+              map.enableScrollWheelZoom();    // 启用滚轮缩放
+              map.enableDoubleClickZoom();    // 启用双击缩放
+              map.enablePinchToZoom();        // 启用捏合缩放
+              map.disableContinuousZoom();    // 禁用连续缩放，可以更好地控制缩放效果
+              
+              // 限制缩放 - 对多个事件进行监听
+              function restrictZoom() {
+                var currentZoom = map.getZoom();
+                // 强制限制在我们允许的范围内
+                if (currentZoom < minZoom) {
+                  map.setZoom(minZoom);
+                } else if (currentZoom > maxZoom) {
+                  map.setZoom(maxZoom);
+                }
+              }
+              
+              // 监听缩放结束事件
+              map.addEventListener('zoomend', restrictZoom);
+              
+              // 监听拖动结束事件（有时拖动会导致缩放变化）
+              map.addEventListener('dragend', restrictZoom);
+              
+              // 监听地图加载完成事件
+              map.addEventListener('tilesloaded', restrictZoom);
+              
+              // 移除阻止多点触摸和手势事件的代码，允许捏合缩放
+              // 但任然监听缩放事件以确保不超出限制范围
+              
+              // 添加简化后的缩放控件
+              map.addControl(new BMap.NavigationControl({
+                anchor: BMAP_ANCHOR_TOP_RIGHT,
+                type: BMAP_NAVIGATION_CONTROL_SMALL
+              }));
+              
+              map.addControl(new BMap.ScaleControl({
+                anchor: BMAP_ANCHOR_BOTTOM_RIGHT,
+                offset: new BMap.Size(10, 10)
+              }));
+              
+              // 其他地图设置
+              map.disableInertialDragging();   // 禁用惯性拖拽
+              
+              // 自定义地图样式
+              var styleJson = [
+                {
+                  "featureType": "all",
+                  "elementType": "all",
+                  "stylers": {
+                    "lightness": 10,
+                    "saturation": -100
+                  }
+                },
+                {
+                  "featureType": "land",
+                  "elementType": "geometry",
+                  "stylers": {
+                    "color": "#f5f0e6"
+                  }
+                },
+                {
+                  "featureType": "water",
+                  "elementType": "geometry",
+                  "stylers": {
+                    "color": "#cad7e4"
+                  }
+                },
+                {
+                  "featureType": "building",
+                  "elementType": "geometry",
+                  "stylers": {
+                    "color": "#e4e0d5"
+                  }
+                },
+                {
+                  "featureType": "green",
+                  "elementType": "geometry",
+                  "stylers": {
+                    "color": "#e2efe0"
+                  }
+                },
+                {
+                  "featureType": "highway",
+                  "elementType": "geometry.fill",
+                  "stylers": {
+                    "color": "#e3d5bc"
+                  }
+                },
+                {
+                  "featureType": "arterial",
+                  "elementType": "geometry.fill",
+                  "stylers": {
+                    "color": "#e7dbc8"
+                  }
+                },
+                {
+                  "featureType": "poi",
+                  "elementType": "all",
+                  "stylers": {
+                    "visibility": "on"
+                  }
+                },
+                {
+                  "featureType": "poilabel",
+                  "elementType": "labels",
+                  "stylers": {
+                    "visibility": "off"
+                  }
+                },
+                {
+                  "featureType": "districtlabel",
+                  "elementType": "labels",
+                  "stylers": {
+                    "visibility": "on"
+                  }
+                },
+                {
+                  "featureType": "railway",
+                  "elementType": "geometry",
+                  "stylers": {
+                    "visibility": "off"
+                  }
+                }
+              ];
+              map.setMapStyleV2({styleJson: styleJson});
               
               ${markersCode}
               
               ${userLocationCode}
+              
+              ${highlightRegionsCode}
               
               log('地图加载成功!');
               window.ReactNativeWebView.postMessage('SUCCESS');
@@ -432,21 +701,26 @@ const MapScreen = () => {
   };
   
   // 注入JavaScript来移动地图中心点
-  const moveToPoint = (longitude: number, latitude: number, zoom: number = 15) => {
+  const moveToPoint = (longitude: number, latitude: number, zoom: number = 6) => {
     if (!webViewRef.current) return;
     
     const script = `
       try {
-        var map = document.getElementsByTagName('script')[0].map;
-        if (map) {
+        if (window.map) {
           var point = new BMap.Point(${longitude}, ${latitude});
-          map.centerAndZoom(point, ${zoom});
-          document.getElementById('status').innerText = '已移动到新位置';
+          
+          // 确保缩放级别在允许的范围内
+          var minZoom = 4;
+          var maxZoom = 8; // 使用相同的限制
+          var validZoom = Math.max(minZoom, Math.min(maxZoom, ${zoom}));
+          
+          map.centerAndZoom(point, validZoom);
+          console.log('已移动到新位置，缩放级别:', validZoom);
         } else {
-          document.getElementById('status').innerText = '地图实例不可用';
+          console.log('地图实例不可用');
         }
       } catch(e) {
-        document.getElementById('status').innerText = '移动位置出错: ' + e.message;
+        console.error('移动位置出错:', e.message);
       }
       true;
     `;
@@ -460,13 +734,37 @@ const MapScreen = () => {
     
     const region = regions.find(r => r.id === selectedRegion);
     if (region) {
-      moveToPoint(region.longitude, region.latitude, region.zoom || 10);
+      // 限制最大缩放级别为8
+      const zoom = Math.min(region.zoom || 6, 8);
+      moveToPoint(region.longitude, region.latitude, zoom);
     }
   };
   
   // 移动到全国视图
   const moveToNationalView = () => {
-    moveToPoint(104.1954, 35.8617, 5); // 中国中心点
+    moveToPoint(104.1954, 35.8617, 4); // 中国中心点，使用最小缩放级别
+  };
+  
+  // 移动到用户位置
+  const moveToUserLocation = () => {
+    if (!userLocation) {
+      // 显示提示
+      Alert.alert(
+        '定位服务',
+        '正在尝试获取您的位置...',
+        [
+          { text: '取消', style: 'cancel' },
+          { 
+            text: '重试', 
+            onPress: requestLocationPermission 
+          }
+        ]
+      );
+      return;
+    }
+    
+    // 使用适中的缩放级别
+    moveToPoint(userLocation.coords.longitude, userLocation.coords.latitude, 8);
   };
 
   // 请求并获取用户位置
@@ -537,11 +835,11 @@ const MapScreen = () => {
         
         // 创建自定义图标
         var userIcon = new BMap.Icon(
-          "https://api.map.baidu.com/images/geolocation-control/position-icon-14x14.png", 
-          new BMap.Size(30, 30),
+          "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23ffffff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='10' fill='%232196F3'/%3E%3Ccircle cx='12' cy='12' r='3' fill='white'/%3E%3C/svg%3E", 
+          new BMap.Size(36, 36),
           {
-            imageSize: new BMap.Size(15, 15),
-            anchor: new BMap.Size(7.5, 7.5)
+            imageSize: new BMap.Size(24, 24),
+            anchor: new BMap.Size(12, 12)
           }
         );
         
@@ -556,11 +854,11 @@ const MapScreen = () => {
         
         // 添加位置精度圆圈
         var circle = new BMap.Circle(userPoint, 100, {
-          strokeColor: "rgba(24, 144, 255, 0.5)",
-          strokeWeight: 1,
-          strokeOpacity: 0.5,
-          fillColor: "rgba(24, 144, 255, 0.2)",
-          fillOpacity: 0.3
+          strokeColor: "rgba(33, 150, 243, 0.6)",
+          strokeWeight: 2,
+          strokeOpacity: 0.8,
+          fillColor: "rgba(33, 150, 243, 0.2)",
+          fillOpacity: 0.4
         });
         circle._isUserLocation = true;
         map.addOverlay(circle);
@@ -571,28 +869,6 @@ const MapScreen = () => {
     `;
     
     webViewRef.current.injectJavaScript(script);
-  };
-  
-  // 移动到用户位置
-  const moveToUserLocation = () => {
-    if (!userLocation) {
-      // 显示提示
-      Alert.alert(
-        '定位服务',
-        '正在尝试获取您的位置...',
-        [
-          { text: '取消', style: 'cancel' },
-          { 
-            text: '重试', 
-            onPress: requestLocationPermission 
-          }
-        ]
-      );
-      return;
-    }
-    
-    moveToPoint(userLocation.coords.longitude, userLocation.coords.latitude, 16);
-    // addUserLocationMarker(userLocation.coords.longitude, userLocation.coords.latitude); // 注释掉这一行
   };
 
   return (
@@ -619,6 +895,13 @@ const MapScreen = () => {
           setErrorMessage(`WebView加载失败: ${error.nativeEvent.description}`);
         }}
       />
+
+      {/* 添加审图号和版权信息显示 */}
+      <View style={styles.mapInfoContainer}>
+        <Text style={styles.mapInfoText}>
+          地图审图号：GS(2022)460号|测绘资质：甲测资字11111342号
+        </Text>
+      </View>
       
       {/* 区域选择器 - 重新设计 */}
       {!isFullscreen && (
@@ -740,6 +1023,7 @@ const styles = StyleSheet.create({
   },
   webview: {
     flex: 1,
+    marginBottom: 70,
   },
   loadingOverlay: {
     ...StyleSheet.absoluteFillObject,
@@ -876,6 +1160,20 @@ const styles = StyleSheet.create({
     backgroundColor: 'white',
     borderRadius: 10,
     padding: 2,
+  },
+  mapInfoContainer: {
+    position: 'absolute',
+    bottom: 70,
+    left: 70,
+    backgroundColor: 'rgba(255, 255, 255, 0.7)',
+    paddingHorizontal: 5,
+    paddingVertical: 2,
+    borderRadius: 3,
+    zIndex: 10,
+  },
+  mapInfoText: {
+    fontSize: 10,
+    color: '#666666',
   },
 });
 
